@@ -157,9 +157,9 @@ clean:
 	rm -f debian/slurm-llnl/usr/lib/libslurm.so.*
 
 	#plugins packages
-	dh_install -pslurm-llnl-basic-plugins debian/slurm-llnl/usr/lib/slurm/*.so usr/lib/slurm-llnl
-	dh_install -pslurm-llnl-basic-plugins-dev debian/slurm-llnl/usr/lib/slurm/*.la usr/lib/slurm-llnl
-	dh_install -pslurm-llnl-basic-plugins-dev debian/slurm-llnl/usr/lib/slurm/*.a usr/lib/slurm-llnl
+	dh_install -pslurm-llnl-basic-plugins debian/slurm-llnl/usr/lib/slurm/*.so usr/lib/slurm
+	dh_install -pslurm-llnl-basic-plugins-dev debian/slurm-llnl/usr/lib/slurm/*.la usr/lib/slurm
+	dh_install -pslurm-llnl-basic-plugins-dev debian/slurm-llnl/usr/lib/slurm/*.a usr/lib/slurm
 	rm -rf debian/slurm-llnl/usr/lib/slurm
 	rm -rf debian/slurm-llnl/usr/share/doc/slurm-llnl-doc
 	rm -f debian/slurm-llnl/usr/share/man/man5/bluegene.conf.5
