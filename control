@@ -1,8 +1,7 @@
 Source: slurm-llnl
 Section: admin
 Priority: extra
-Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-XSBC-Original-Maintainer: Gennaro Oliva <oliva.g@na.icar.cnr.it>
+Maintainer: Michael Gutteridge <mrg@fhcrc.org>
 Build-Depends: debhelper (>= 7.0.0), autotools-dev, libmunge-dev, libncurses5-dev, libssl-dev, po-debconf, python, libglade2-dev, libgtk2.0-dev, libmysqlclient-dev, postgresql-server-dev-9.1, libpam0g-dev, libperl-dev, chrpath, libpam0g-dev
 Standards-Version: 3.9.2
 Homepage: https://computing.llnl.gov/linux/slurm/
