@@ -1,8 +1,16 @@
+slurm-llnl (2.3.5-3ubuntu1) precise; urgency=low
+
+  * Changed slurmd and slurmctld to use upstart for starting
+    daemons
+
+ -- Michael Gutteridge <mrg@fhcrc.org>  Thu, 23 Aug 2012 10:17:25 -0700
+
 slurm-llnl (2.3.5-2ubuntu1) precise; urgency=low
 
   * Correct handling of WALLTIME type job cancel in wiki2 plugin
 
  -- Michael Gutteridge <mrg@fhcrc.org>  Tue, 05 Jun 2012 09:31:36 -0700
+
 slurm-llnl (2.3.5-1ubuntu1) precise; urgency=low
 
   * New upstream release
