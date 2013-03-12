@@ -1,3 +1,9 @@
+slurm-llnl (2.5.4-1ubuntu1) precise; urgency=low
+
+  * New upstream version
+
+ -- Michael Gutteridge <mrg@fhcrc.org>  Tue, 12 Mar 2013 08:33:39 -0700
+
 slurm-llnl (2.4.2-1ubuntu1) precise; urgency=low
 
   * New upstream version
