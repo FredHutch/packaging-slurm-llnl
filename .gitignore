@@ -37,10 +37,10 @@ debian/libpam-slurm/
 debian/libpmi0-dev/
 debian/libpmi0/
 debian/libslurm-perl/
-debian/libslurm24/
+debian/libslurm[0-9][0-9]/
 debian/libslurmdb-dev/
 debian/libslurmdb-perl/
-debian/libslurmdb24/
+debian/libslurmdb[0-9][0-9]/
 debian/patches/fhcrc-docs
 debian/slurm-llnl-basic-plugins-dev/
 debian/slurm-llnl-basic-plugins/
