@@ -71,15 +71,19 @@ clean:
 	[ ! -f contribs/pam/Makefile ] || $(MAKE) -C contribs/pam distclean
 	[ ! -f Makefile ] || $(MAKE) distclean
 
-	  rm -rf .pc contribs/pam/.deps \
-		src/plugins/accounting_storage/common/.deps \
-		src/plugins/accounting_storage/common/.libs
-	  rm -f config.sub
-	  rm -f config.guess
-	  dh_clean
+	rm -rf .pc contribs/pam/.deps \
+	src/plugins/accounting_storage/common/.deps \
+	src/plugins/accounting_storage/common/.libs
+	rm -f config.sub
+	rm -f config.guess
+	rm contribs/cray/opt_modulefiles_slurm
+	rm contribs/mic/Makefile
+	rm contribs/pmi2/Makefile
 
-  install: install-indep install-arch
-  install-indep:
+	dh_clean
+
+install: install-indep install-arch
+install-indep:
 	dh_testdir
 	dh_testroot
 	dh_prep -i 
@@ -98,7 +102,7 @@ clean:
 
 	dh_install -i
 
-  install-arch:
+install-arch:
 	dh_testdir
 	dh_testroot
 	dh_prep -s 
@@ -218,6 +222,7 @@ binary-common:
 #	dh_installexamples -pslurm-llnl-slurmdbd debian/slurmdbd.conf.simple
 	dh_installinit --upstart-only --name=slurmd --no-start
 	dh_installinit --upstart-only --name=slurmctld --no-start
+	dh_installinit --upstart-only --name=slurmdbd --no-start
 	dh_installlogrotate
 	dh_installdebconf
 	dh_installman

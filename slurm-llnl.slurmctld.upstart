@@ -19,7 +19,7 @@ pre-start script
 end script
 
 script
-  . /etc/default/slurm-llnl
+  SLURMCTLD_OPTIONS=""
   /usr/sbin/slurmctld -D ${SLURMCTLD_OPTIONS}
 end script
 

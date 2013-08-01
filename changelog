@@ -1,3 +1,9 @@
+slurm-llnl (2.6.0-1ubuntu1) precise; urgency=low
+
+  * New upstream version
+
+ -- Michael Gutteridge <mrg@fhcrc.org>  Thu, 01 Aug 2013 09:20:46 -0700
+
 slurm-llnl (2.5.4-2ubuntu1) precise; urgency=low
 
   * Patch to correct max_nodes during checkpoint of jobs

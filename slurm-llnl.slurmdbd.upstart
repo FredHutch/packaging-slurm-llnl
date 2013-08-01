@@ -1,0 +1,25 @@
+# slurmctld - LLBL SLURM Resource Manager Central Management Daemon
+#
+
+description  "SLURM database server interface"
+
+start on runlevel [2345]
+stop on runlevel [016S]
+
+respawn
+
+pre-start script
+  # Check for configuration file
+  CONFFILE="/etc/slurm-llnl/slurmdbd.conf"
+  if [ ! -f ${CONFFILE} ]
+  then
+    stop
+    exit 0
+  fi
+end script
+
+script
+  SLURMDBD_OPTIONS=""
+  /usr/sbin/slurmdbd ${SLURMDBD_OPTIONS}
+end script
+
