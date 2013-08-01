@@ -82,8 +82,8 @@ clean:
 
 	dh_clean
 
-  install: install-indep install-arch
-  install-indep:
+install: install-indep install-arch
+install-indep:
 	dh_testdir
 	dh_testroot
 	dh_prep -i 
@@ -102,7 +102,7 @@ clean:
 
 	dh_install -i
 
-  install-arch:
+install-arch:
 	dh_testdir
 	dh_testroot
 	dh_prep -s 
