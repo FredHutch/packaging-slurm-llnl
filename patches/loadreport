@@ -1,0 +1,29 @@
+--- a/src/plugins/sched/wiki2/get_nodes.c
++++ b/src/plugins/sched/wiki2/get_nodes.c
+@@ -330,6 +330,13 @@
+ 
+ 	snprintf(tmp, sizeof(tmp), ":STATE=%s;", _get_node_state(node_ptr));
+ 	xstrcat(buf, tmp);
++
++	if (node_ptr->cpu_load != NO_VAL) {
++		snprintf(tmp, sizeof(tmp), "CPULOAD=%f;",
++			 (node_ptr->cpu_load / 100.0));
++		xstrcat(buf, tmp);
++	}
++
+ 	if (node_ptr->reason) {
+ 		/* Strip out any quotes, they confuse Moab */
+ 		char *reason, *bad_char;
+@@ -364,12 +371,6 @@
+ 	if (i > 0)
+ 		xstrcat(buf, ";");
+ 
+-	if (node_ptr->cpu_load != NO_VAL) {
+-		snprintf(tmp, sizeof(tmp), "CPULOAD=%f;",
+-			 (node_ptr->cpu_load / 100.0));
+-		xstrcat(buf, tmp);
+-	}
+-
+ 	if (node_ptr->arch) {
+ 		snprintf(tmp, sizeof(tmp), "ARCH=%s;", node_ptr->arch);
+ 		xstrcat(buf, tmp);
