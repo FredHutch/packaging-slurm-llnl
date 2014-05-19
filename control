@@ -15,6 +15,15 @@ Description: Simple Linux Utility for Resource Management
  that strives to be simple, scalable, portable, fault-tolerant, and
  interconnect agnostic.
 
+Package: slurm-llnl-dbg
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, openssl, ucf, munge, slurm-llnl-basic-plugins (= ${binary:Version}), adduser, openssl-blacklist, openssl (>= 0.9.8g-9), lsb-base (>= 3.2-12), libhdf5-openmpi-1.8.4
+Description: Debug Symbols for Simple Linux Utility for Resource Management
+ SLURM stands for Simple Linux Utility for Resource Management, it
+ is an open-source cluster resource management and job scheduling system
+ that strives to be simple, scalable, portable, fault-tolerant, and
+ interconnect agnostic.
+
 Package: libslurmdb26
 Section: libs
 Architecture: any

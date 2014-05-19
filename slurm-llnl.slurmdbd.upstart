@@ -20,6 +20,6 @@ end script
 
 script
   SLURMDBD_OPTIONS=""
-  /usr/sbin/slurmdbd ${SLURMDBD_OPTIONS}
+  /usr/sbin/slurmdbd -D ${SLURMDBD_OPTIONS}
 end script
 
