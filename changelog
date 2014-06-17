@@ -1,3 +1,9 @@
+slurm-llnl (2.6.9-3) precise; urgency=low
+
+  * Patch to correct node selection on restart with fastselect=0
+
+ -- Michael Gutteridge <mrg@fhcrc.org>  Tue, 17 Jun 2014 07:17:34 -0700
+
 slurm-llnl (2.6.9-2) precise; urgency=low
 
   * Added patch to fix memory leak in preemption
