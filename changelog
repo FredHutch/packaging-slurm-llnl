@@ -1,3 +1,9 @@
+slurm-llnl (2.6.9-4) precise; urgency=low
+
+  * Updated for inclusion of updated gizmo-plugins
+
+ -- Michael Gutteridge <mrg@fhcrc.org>  Wed, 16 Jul 2014 15:00:36 -0700
+
 slurm-llnl (2.6.9-3) precise; urgency=low
 
   * Patch to correct node selection on restart with fastselect=0
