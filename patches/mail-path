@@ -1,6 +1,6 @@
 --- a/src/common/read_config.h
 +++ b/src/common/read_config.h
-@@ -105,7 +105,7 @@
+@@ -111,7 +111,7 @@
  #  define DEFAULT_LAUNCH_TYPE         "launch/slurm"
  #endif
  
@@ -11,7 +11,7 @@
  #define DEFAULT_MAX_JOB_ID          0xffff0000
 --- a/doc/man/man5/slurm.conf.5
 +++ b/doc/man/man5/slurm.conf.5
-@@ -970,7 +970,7 @@
+@@ -1100,7 +1100,7 @@
  .TP
  \fBMailProg\fR
  Fully qualified pathname to the program used to send email per user request.
@@ -22,27 +22,27 @@
  \fBMaxArraySize\fR
 --- a/doc/man/man1/strigger.1
 +++ b/doc/man/man1/strigger.1
-@@ -282,7 +282,7 @@
- 	strigger \-\-set \-\-primary_slurmctld_failure \\
- 	         \-\-program=/usr/sbin/primary_slurmctld_failure
- 	# Notify the administrator of the failure using by e\-mail
--	/bin/mail slurm_admin@site.com \-s Primary_SLURMCTLD_FAILURE
-+	/usr/bin/mail slurm_admin@site.com \-s Primary_SLURMCTLD_FAILURE
+@@ -289,7 +289,7 @@
+ strigger \-\-set \-\-primary_slurmctld_failure \\
+          \-\-program=/usr/sbin/primary_slurmctld_failure
+ # Notify the administrator of the failure using by e\-mail
+-/bin/mail slurm_admin@site.com \-s Primary_SLURMCTLD_FAILURE
++/usr/bin/mail slurm_admin@site.com \-s Primary_SLURMCTLD_FAILURE
  
- 	> strigger \-\-set \-\-primary_slurmctld_failure \\
- 	           \-\-program=/usr/sbin/primary_slurmctld_failure
-@@ -301,7 +301,7 @@
- 	strigger \-\-set \-\-node \-\-down \\
- 	         \-\-program=/usr/sbin/slurm_admin_notify
- 	# Notify administrator using by e\-mail
--	/bin/mail slurm_admin@site.com \-s NodesDown:$*
-+	/usr/bin/mail slurm_admin@site.com \-s NodesDown:$*
+ > strigger \-\-set \-\-primary_slurmctld_failure \\
+            \-\-program=/usr/sbin/primary_slurmctld_failure
+@@ -308,7 +308,7 @@
+ strigger \-\-set \-\-node \-\-down \\
+          \-\-program=/usr/sbin/slurm_admin_notify
+ # Notify administrator using by e\-mail
+-/bin/mail slurm_admin@site.com \-s NodesDown:$*
++/usr/bin/mail slurm_admin@site.com \-s NodesDown:$*
  
- 	> strigger \-\-set \-\-node \-\-down \\
- 	           \-\-program=/usr/sbin/slurm_admin_notify
+ > strigger \-\-set \-\-node \-\-down \\
+            \-\-program=/usr/sbin/slurm_admin_notify
 --- a/doc/html/configurator.html.in
 +++ b/doc/html/configurator.html.in
-@@ -152,7 +152,7 @@
+@@ -130,7 +130,7 @@
     "#KillOnBadExit=0 <br>" +
     "#LaunchType=launch/slurm <br>" +
     "#Licenses=foo*4,bar <br>" +
@@ -53,7 +53,7 @@
     "#MaxTasksPerNode=128 <br>" +
 --- a/doc/html/configurator.easy.html.in
 +++ b/doc/html/configurator.easy.html.in
-@@ -128,7 +128,7 @@
+@@ -106,7 +106,7 @@
     "ControlMachine=" + document.config.control_machine.value + "<br>" +
     get_field("ControlAddr",document.config.control_addr) + "<br>" +
     "# <br>" +

@@ -2,7 +2,7 @@ Source: slurm-llnl
 Section: admin
 Priority: extra
 Maintainer: Michael Gutteridge <mrg@fhcrc.org>
-Build-Depends: debhelper (>= 7.0.0), autotools-dev, libmunge-dev, libncurses5-dev, libssl-dev, po-debconf, python, libglade2-dev, libgtk2.0-dev, libmysqlclient-dev, postgresql-server-dev-9.1, libpam0g-dev, libperl-dev, chrpath, libpam0g-dev, libhdf5-openmpi-dev
+Build-Depends: debhelper (>= 7.0.0), autotools-dev, libmunge-dev, libncurses5-dev, libssl-dev, po-debconf, python, libglade2-dev, libgtk2.0-dev, libmysqlclient-dev, postgresql-server-dev-9.3, libpam0g-dev, libperl-dev, chrpath, libpam0g-dev, libhdf5-openmpi-dev
 Standards-Version: 3.9.2
 Homepage: https://computing.llnl.gov/linux/slurm/
 
