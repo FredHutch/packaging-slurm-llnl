@@ -1,6 +1,7 @@
-slurm-llnl (14.03.7-1ubuntu1) precise; urgency=low
+slurm-llnl (14.03.7-1fhcrc1~trusty1) precise; urgency=low
 
   * New upstream version
+  * Updated package name
 
  -- Michael Gutteridge <mrg@fhcrc.org>  Mon, 20 Oct 2014 11:59:51 -0700
 
