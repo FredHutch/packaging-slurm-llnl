@@ -1,4 +1,4 @@
-slurm-llnl (14.03.7-1fhcrc1~trusty1) precise; urgency=low
+slurm-llnl (14.03.7-1fhcrc1~precise) precise; urgency=low
 
   * New upstream version
   * Updated package name
