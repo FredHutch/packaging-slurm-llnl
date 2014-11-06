@@ -1,3 +1,9 @@
+slurm-llnl (14.03.7-2fhcrc1~trusty1) trusty; urgency=low
+
+  * enabled multiple slurmd
+
+ -- Michael Gutteridge <mrg@fhcrc.org>  Wed, 05 Nov 2014 20:38:39 -0800
+
 slurm-llnl (14.03.7-1fhcrc1~trusty1) trusty; urgency=low
 
   * New upstream version

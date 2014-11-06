@@ -39,7 +39,7 @@ ifneq "$(wildcard /usr/share/misc/config.guess)" ""
 	cp -f /usr/share/misc/config.guess config.guess
 endif
 	# Add here commands to configure the package.
-	CFLAGS="$(CFLAGS)" ./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --sysconfdir=/etc/slurm-llnl --with-munge --localstatedir=/var/run/slurm-llnl --with-blcr --libexecdir=/usr/share --enable-pam --without-rpath
+	CFLAGS="$(CFLAGS)" ./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --sysconfdir=/etc/slurm-llnl --with-munge --localstatedir=/var/run/slurm-llnl --with-blcr --libexecdir=/usr/share --enable-pam --without-rpath --enable-multiple-slurmd
 
 
 
