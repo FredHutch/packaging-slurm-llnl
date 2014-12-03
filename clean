@@ -12,6 +12,7 @@ contribs/Makefile
 src/plugins/accounting_storage/common/*.o
 src/plugins/accounting_storage/common/*.l[oa]
 src/plugins/accounting_storage/common/Makefile
+src/plugins/jobacct_gather/common/*.o
 src/plugins/jobacct_gather/common/.libs/*
 src/plugins/jobacct_gather/common/*.l[oa]
 src/plugins/jobacct_gather/common/Makefile
