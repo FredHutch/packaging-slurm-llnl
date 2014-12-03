@@ -1,3 +1,9 @@
+slurm-llnl (14.03.7-3fhcrc1~trusty1) trusty; urgency=low
+
+  * corrected dependencies for hdf5
+
+ -- Michael Gutteridge <mrg@fhcrc.org>  Wed, 03 Dec 2014 09:46:39 -0800
+
 slurm-llnl (14.03.7-2fhcrc1~trusty1) trusty; urgency=low
 
   * enabled multiple slurmd
