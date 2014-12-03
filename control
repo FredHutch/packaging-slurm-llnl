@@ -2,13 +2,13 @@ Source: slurm-llnl
 Section: admin
 Priority: extra
 Maintainer: Michael Gutteridge <mrg@fhcrc.org>
-Build-Depends: debhelper (>= 7.0.0), autotools-dev, libmunge-dev, libncurses5-dev, libssl-dev, po-debconf, python, libglade2-dev, libgtk2.0-dev, libmysqlclient-dev, postgresql-server-dev-9.3, libpam0g-dev, libperl-dev, chrpath, libpam0g-dev, libhdf5-openmpi-dev, libcr-dev
+Build-Depends: debhelper (>= 7.0.0), autotools-dev, libmunge-dev, libncurses5-dev, libssl-dev, po-debconf, python, libglade2-dev, libgtk2.0-dev, libmysqlclient-dev, postgresql-server-dev-9.3, libpam0g-dev, libperl-dev, chrpath, libpam0g-dev, libhdf5-serial-dev | libhdf5-mpich2-dev | libhdf5-openmpi-dev, libcr-dev
 Standards-Version: 3.9.2
 Homepage: https://computing.llnl.gov/linux/slurm/
 
 Package: slurm-llnl
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, openssl, ucf, munge, slurm-llnl-basic-plugins (= ${binary:Version}), adduser, openssl-blacklist, openssl (>= 0.9.8g-9), lsb-base (>= 3.2-12), libhdf5-openmpi-1.8 | libhdf5-openmpi-7, blcr-dkms, blcr-util
+Depends: ${shlibs:Depends}, ${misc:Depends}, openssl, ucf, munge, slurm-llnl-basic-plugins (= ${binary:Version}), adduser, openssl-blacklist, openssl (>= 0.9.8g-9), lsb-base (>= 3.2-12), libhdf5-7 | libhdf5-mpich2-7 | libhdf5-openmpi-7, blcr-dkms, blcr-util
 Description: Simple Linux Utility for Resource Management
  SLURM stands for Simple Linux Utility for Resource Management, it
  is an open-source cluster resource management and job scheduling system
