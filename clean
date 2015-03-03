@@ -1,3 +1,4 @@
+contribs/cray/opt_modulefiles_slurm
 contribs/sjobexit/Makefile
 contribs/pam/Makefile
 contribs/slurmdb-direct/Makefile
@@ -12,12 +13,9 @@ contribs/Makefile
 src/plugins/accounting_storage/common/*.o
 src/plugins/accounting_storage/common/*.l[oa]
 src/plugins/accounting_storage/common/Makefile
-src/plugins/jobacct_gather/common/*.o
-src/plugins/jobacct_gather/common/.libs/*
-src/plugins/jobacct_gather/common/*.l[oa]
-src/plugins/jobacct_gather/common/Makefile
 src/common/global_defaults.c
 contribs/arrayrun/Makefile
 contribs/cray/Makefile
 contribs/lua/Makefile
-contribs/sgather/Makefile
+contribs/mic/Makefile
+contribs/pmi2/Makefile

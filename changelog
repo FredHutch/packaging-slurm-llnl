@@ -1,83 +1,230 @@
-slurm-llnl (14.03.7-3fhcrc1~trusty1) trusty; urgency=low
+slurm-llnl (14.03.9-5) unstable; urgency=medium
 
-  * corrected dependencies for hdf5
+  [ Roland Fehrenbacher ]
+  * sacctmgr moved to the slurm-client package (Closes: #768938)
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Wed, 03 Dec 2014 09:46:39 -0800
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Wed, 12 Nov 2014 12:07:04 +0100
 
-slurm-llnl (14.03.7-2fhcrc1~trusty1) trusty; urgency=low
+slurm-llnl (14.03.9-4) unstable; urgency=medium
 
-  * enabled multiple slurmd
+  * Declaring slurm-client conflict with sinfo (Closes: #768112)
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Wed, 05 Nov 2014 20:38:39 -0800
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Thu, 06 Nov 2014 10:28:03 +0100
 
-slurm-llnl (14.03.7-1fhcrc1~trusty1) trusty; urgency=low
+slurm-llnl (14.03.9-3) unstable; urgency=medium
 
-  * New upstream version
-  * Updated package name
+  * Do not force slurmdbd.conf's mode to 600.
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Mon, 20 Oct 2014 11:59:51 -0700
+ -- Mehdi Dogguy <mehdi@debian.org>  Sat, 25 Oct 2014 01:13:56 +0200
 
-slurm-llnl (2.6.0-1ubuntu1) precise; urgency=low
+slurm-llnl (14.03.9-2) unstable; urgency=medium
 
-  * New upstream version
+  [ Roland Fehrenbacher ]
+  * Fix names of boot scripts in logrotate files
+  * Ensure slurmdbd.conf has mode 600
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Thu, 01 Aug 2013 09:20:46 -0700
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Fri, 24 Oct 2014 15:31:40 +0200
 
-slurm-llnl (2.5.4-2ubuntu1) precise; urgency=low
+slurm-llnl (14.03.9-1) unstable; urgency=low
 
-  * Patch to correct max_nodes during checkpoint of jobs
+  [ Mehdi Dogguy ]
+  * New upstream release.
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Tue, 12 Mar 2013 08:33:39 -0700
+  [ Gennaro Oliva ]
+  * Upgraded to standard version 3.9.6
+  * Updated libslurm27.symbols and libslurmdb27.symbols.
+  * Fix spelling error in slurm.conf.5
+    * add debian/patches/manpages
+  * Added munge to slurmd and slurmctld Depends (Closes: #766160)
 
-slurm-llnl (2.5.4-1ubuntu1) precise; urgency=low
+  [ Rémi Palancher ]
+  * Enable hwloc support
+    * add Build-Depends on libhwloc-dev
+    * enable dh autoreconf
+    * add debian/patches/honor-without-rpath-hwloc
 
-  * New upstream version
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Thu, 23 Oct 2014 17:27:46 +0200
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Tue, 12 Mar 2013 08:33:39 -0700
+slurm-llnl (14.03.8-2) unstable; urgency=medium
 
-slurm-llnl (2.4.2-1ubuntu1) precise; urgency=low
+  [ Mehdi Dogguy ]
+  * Update Homepage field in d/control file
+  * Fix watch file
 
-  * New upstream version
+  [ Rémi Palancher ]
+  * Use architecture.mk for DEB_BUILD/DEB_HOST defs
+  * Fix typo in default PID path in configurator
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Mon, 17 Sep 2012 13:42:51 -0700
+ -- Mehdi Dogguy <mehdi@debian.org>  Tue, 07 Oct 2014 21:55:59 +0200
 
-slurm-llnl (2.3.5-3ubuntu1) precise; urgency=low
+slurm-llnl (14.03.8-1) experimental; urgency=medium
 
-  * Changed slurmd and slurmctld to use upstart for starting
-    daemons
+  [ Gennaro Oliva ]
+  * Binary packages renaming:
+    slurm-llnl -> slurm-client
+    slurm-llnl-slurmd -> slurmd
+    slurm-llnl-slurmctld -> slurmctld
+    slurm-llnl-slurdbd -> slurmdbd
+    slurm-llnl-basic-plugins -> slurm-wlm-basic-plugins
+    slurm-llnl-basic-plugins-dev -> slurm-wlm-basic-plugins-dev
+    slurm-llnl-sview -> sview
+    slurm-llnl-doc -> slurm-wlm-doc
+  * New slurm-wlm metapackage depending on slurmctld
+    slurm-client and slurmd
+  * New slurm-llnl and slurm-llnl-slurmdbd
+    transitional dummy packages
+  * README.* updated
+  * Configurators, slurm-resume.sh and
+    slurm-suspend.sh examples moved to the slurmctld
+    package
+  * init.d scripts modified to import old default and
+    to avoid usless dependency on slurm-client
+  * Restored lintian-overrides files to avoid
+    informational ("-I") tags
+  * Added slurm directories in transitional dummy
+    packages to avoid installation messages warnings
+    about not removing non-empty directories
+  * Added slurm-llnl-slurmdbd and slurm-llnl preinst
+    to remove rc?.d symlinks to the old init scripts
+    and the script itself if it doesn't contain user
+    changes
+  * Added {slurmd,slurmctld,slurmdbd}.tmpfile to
+    create /var/run/slurm-llnl when using systemd
+  * Added a warning message in the slurm-llnl preinst in case of
+    modified init files
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Thu, 23 Aug 2012 10:17:25 -0700
+  [ Rémi Palancher ]
+  * New upstream release 14.03.7 (Closes: #756012)
+    Maintainers patches have been ported to this new upstream version
+    SONAME of shared libs in *-dev pkgs dumped from 26 to 27 with updated
+    debian/*.symbols
+  * Bump debhelper compat level from 7 to 9
+  * Split slurm-llnl package into 3 packages: slurm-llnl{,-slurmd,-slurmtld}
+    (Closes: #749945)
+  * Added native systemd services files
+  * Remove build-dep to libpq-dev since upstream does not support PostgreSQL
+    backend anymore
+  * Big cleanup in debian/rules back to something more dh standards compliant.
+    This also fixes FTBFS when built twice in a row (Closes: #617697).
+  * Moved examples in dedicated subdirectory
+  * Adds examples for cgroup configuration in slurmd pkg
+  * Remove useless file related to transient slurm-llnl-dev package
+  * Use globing in libslurm-dev.manpages
+  * Correct path to README in init scripts and path to example in README
+  * Add patch to increase size of read buffer for sacctmgr
+    + debian/patches/sacctmgr-increase-buffer
+  * Enable parallel build
+  * Remove all lintian overrides
 
-slurm-llnl (2.3.5-2ubuntu1) precise; urgency=low
+  [ Mehdi Dogguy ]
+  * Wrap {,Build-}Depends lines in debian/control file to increase readability.
+  * Add Rémi and myself as Uploaders
+  * Add Vcs-{Browser,Git} fields.
+  * Import new upstream release (14.03.8)
 
-  * Correct handling of WALLTIME type job cancel in wiki2 plugin
+ -- Rémi Palancher <remi@rezib.org>  Mon, 08 Sep 2014 15:00:28 +0200
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Tue, 05 Jun 2012 09:31:36 -0700
+slurm-llnl (2.6.7-2) unstable; urgency=medium
 
-slurm-llnl (2.3.5-1ubuntu1) precise; urgency=low
+  [ gregor herrmann ]
+  * Fix "hardcodes /usr/lib/perl5":
+    - drop debian/libslurmdb-perl.dirs
+    - dynamically create directories and move files in debian/rules, using the
+      value of $Config{vendorarch}
+    (Closes: #752814)
+
+  [ Gennaro Oliva ]
+  * Add lintian overrides for spelling-error-in-binary in the
+    slurm-llnl-basic-plugins package to avoid wrong spelling error detection
+  * Added dh_autoreconf (Closes: #744659)
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Tue, 29 Jul 2014 17:13:06 +0200
+
+slurm-llnl (2.6.7-1) unstable; urgency=medium
 
   * New upstream release
+  * Added lua5.1-0-dev build dependency
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Mon, 21 Mar 2012 17:37:00 +0800
-slurm-llnl (2.3.4-1ubuntu1) precise; urgency=low
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Fri, 21 Mar 2014 16:47:16 +0100
 
-  * New upstream release
-
- -- Michael Gutteridge <mrg@fhcrc.org>  Mon, 21 Mar 2012 17:37:00 +0800
-
-slurm-llnl (2.3.3-1ubuntu1) precise; urgency=low
+slurm-llnl (2.6.5-1) unstable; urgency=low
 
   * New upstream release
+  * Changed Build-Depends entry from postgresql-server-dev to libpq-dev
+    (Closes: #732512) thanks to Christoph Berg and Martin Pitt
+  * Sleeping one second in the postrotate section of slurm-llnl.logrotate
+    (Closes: #735741) thanks to Stephane Vaillant
+  * Adding optional dependency for mysql in slurm-llnl-slurmdbd.init.d
+    (Closes: #735748) thanks to Stephane Vaillant
 
- -- Michael Gutteridge <mrg@fhcrc.org>  Mon, 21 Mar 2012 13:37:00 +0800
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Sat, 04 Jan 2014 10:43:02 +0100
 
-slurm-llnl (2.3.2-1ubuntu1) precise; urgency=low
+slurm-llnl (2.6.4-1) unstable; urgency=low
 
-  * debian/control: Build package against postgresql-server-dev-9.1 again.
-    This was already done in 2.2.7-2, but that version disappeared from the
-    history. (Debian #639480)
+  * New upstream release 
 
- -- Martin Pitt <martin.pitt@ubuntu.com>  Mon, 13 Feb 2012 10:20:31 +0100
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Tue, 05 Nov 2013 12:49:24 +0100
+
+slurm-llnl (2.5.7-1) unstable; urgency=low
+
+  * New upstream relase
+  * Add lintian overrides for shlib-with-executable-stack in the
+    slurm-llnl-basic-plugins package since _block_sync_core_bitmap in
+    src/plugins/select/cons_res/dist_tasks.c contains nested functions
+  * Add slurm-llnl-configurator.easy.html
+  * Changed homepage to http://www.schedmd.com (Closes: #703529)
+  * Successfully compile under 4.8 (Closes: #701359)
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Sat, 08 Jun 2013 17:53:39 +0200
+
+slurm-llnl (2.5.3-1) unstable; urgency=low
+
+  * New upstream major release 
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Wed, 06 Feb 2013 16:14:10 +0100
+
+slurm-llnl (2.4.5-1) unstable; urgency=low
+
+  * New upstream major release 
+  * Add lintian overrides for hardening-no-fortify-functions in the
+    slurm-llnl-basic-plugins package
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Sun, 03 Feb 2013 11:53:20 +0100
+
+slurm-llnl (2.3.4-2) unstable; urgency=low
+
+  * Avoiding deluser to fail on purge (Closes: #667537) 
+  * Hardening flags added (Closes: #663878), thanks to Simon Ruderich
+    for the patch
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Thu, 05 Apr 2012 12:42:35 +0200
+
+slurm-llnl (2.3.4-1) unstable; urgency=low
+
+  * New upstream release 
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Tue, 20 Mar 2012 09:50:31 +0100
+
+slurm-llnl (2.3.3-2) unstable; urgency=low
+
+  * Changed Build-Depends entry from postgresql-server-dev-8.4 to 9.1
+    (Closes: #639480)
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Mon, 13 Feb 2012 10:46:03 +0100
+
+slurm-llnl (2.3.3-1) unstable; urgency=low
+
+  * New upstream release 
+  * New watch file pointing to schedmd website 
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Tue, 24 Jan 2012 23:02:15 +0100
+
+slurm-llnl (2.3.2-2) unstable; urgency=low
+
+  * Enable hardened build flags through dpkg-buildflags, thanks to
+    Moritz Muehlenhoff (Closes: #656781)
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Sat, 21 Jan 2012 20:57:11 +0100
 
 slurm-llnl (2.3.2-1) unstable; urgency=low
 

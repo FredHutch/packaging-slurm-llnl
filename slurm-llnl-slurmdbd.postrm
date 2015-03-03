@@ -1,5 +1,5 @@
 #!/bin/sh
-# postrm script for slurm-llnl
+# postrm script for slurm-llnl-slumrdbd
 #
 # see: dh_installdeb(1)
 
@@ -20,18 +20,14 @@ set -e
 
 case "$1" in
        purge)
-	 if which ucf >/dev/null; then
-	   ucf --purge /etc/slurm-llnl/slurmdbd.conf
-	 fi
-         rm -rf /etc/slurm-llnl/slurmdbd.conf
-         rm -rf /var/log/slurm-llnl/slurmdbd*log*
-	 if [ ! -e /usr/sbin/slurmctld ] ; then 
-       pkill -9 -u slurm || true
-       # User may exist in external directory
-	   deluser --quiet slurm || true
-       rm -rf /var/run/slurm-llnl
-	 fi
-        ;;
+         if ! dpkg-query -l slurm-llnl \
+              1>/dev/null 2>/dev/null ; then
+
+           if [ -e /etc/default/slurm-llnl ] ; then
+             rm -f /etc/default/slurm-llnl
+           fi
+         fi
+         ;;
 
        remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
 
