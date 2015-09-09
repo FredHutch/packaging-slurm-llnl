@@ -1,3 +1,9 @@
+slurm-llnl (15.08.0-1-trusty) unstable; urgency=medium
+
+  * Update for release
+
+ -- Michael Gutteridge <mrg@fredhutch.org>  Wed, 09 Sep 2015 16:04:00 -0700
+
 slurm-llnl (15.08.0-pre3-1-trusty) unstable; urgency=medium
 
   * Update for new slurm version
