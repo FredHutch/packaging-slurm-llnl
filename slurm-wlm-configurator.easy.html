@@ -310,10 +310,10 @@ The location of a directory where slurmd saves state should also be defined.
 This must be a unique directory on each compute server (local disk).
 The use of a highly reliable file system (e.g. RAID) is recommended.
 <P>
-<input type="text" name="state_save_location" value="/var/lib/slurm/slurmctld"> <B><font color="red">StateSaveLocation</font></B>:
+<input type="text" name="state_save_location" value="/var/lib/slurm-llnl/slurmctld"> <B><font color="red">StateSaveLocation</font></B>:
 Slurmctld state save directory </B>
 <P>
-<input type="text" name="slurmd_spool_dir" value="/var/lib/slurm/slurmd"> <B><font color="red">SlurmdSpoolDir</font></B>:
+<input type="text" name="slurmd_spool_dir" value="/var/lib/slurm-llnl/slurmd"> <B><font color="red">SlurmdSpoolDir</font></B>:
 Slurmd state save directory
 <P>
 Define when a non-responding (DOWN) node is returned to service.<BR>
@@ -471,9 +471,9 @@ levels of logging verbosity from 0 (quiet) to 7 (extremely verbose).
 Each may also be configured to use debug files. Use fully qualified
 pathnames for the files.
 <P>
-<input type="text" name="slurmctld_logfile" value="/var/log/slurm/slurmctld.log"> <B><font color="red">SlurmctldLogFile</font></B> (default is none, log goes to syslog)
+<input type="text" name="slurmctld_logfile" value="/var/log/slurm-llnl/slurmctld.log"> <B><font color="red">SlurmctldLogFile</font></B> (default is none, log goes to syslog)
 <P>
-<input type="text" name="slurmd_logfile" value="/var/log/slurm/slurmd.log"> <B><font color="red">SlurmdLogFile</font></B> (default is none, 
+<input type="text" name="slurmd_logfile" value="/var/log/slurm-llnl/slurmd.log"> <B><font color="red">SlurmdLogFile</font></B> (default is none, 
 log goes to syslog, string "%h" in name gets replaced with hostname)
 <P>
 

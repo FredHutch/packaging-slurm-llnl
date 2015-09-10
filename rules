@@ -4,16 +4,20 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+export CFLAGS=-I/usr/include/mpich
 export PERL_ARCHLIB := $(shell perl -MConfig -e 'print substr($$Config{vendorarch}, 1)')
 # include defs of all DEB_HOST_*/DEB_BUILD_* vars
 include /usr/share/dpkg/architecture.mk
 
 %:
-	dh $@ --builddirectory --parallel --with autoreconf --with systemd
+	dh $@ --builddirectory --parallel --with systemd
 
+# We run configure with --disable-debug to avoid the default use of -O0 and
+# consequent unprotected source functions, causing lintian report
+# hardening-no-fortify-functions
+# Notice that -g in CFLAGS is still provided by dpkg-buildflags
 override_dh_auto_configure:
-	dh_auto_configure -- --sysconfdir=/etc/slurm-llnl --localstatedir=/var/run/slurm-llnl --libexecdir=/usr/share --with-munge --with-blcr --enable-pam --without-rpath --enable-multiple-slurmd
-
+	dh_auto_configure -- --sysconfdir=/etc/slurm-llnl --localstatedir=/var/run/slurm-llnl --libexecdir=/usr/share --with-munge --with-blcr --enable-pam --without-rpath --enable-multiple-slurmd --disable-debug
 
 override_dh_auto_install:
 	dh_auto_install
@@ -38,5 +42,20 @@ override_dh_auto_install:
 	for i in debian/tmp/usr/bin/pbsnodes debian/tmp/usr/bin/q*; do \
 		pod2man $$i > debian/tmp/usr/share/man/man1/$$(basename $$i).1; \
 	done
+
+override_dh_strip:
+	dh_strip -plibslurm28 --dbg-package=libslurm28-dbg
+	dh_strip -plibslurmdb28 --dbg-package=libslurmdb28-dbg
+	dh_strip -plibpmi0 --dbg-package=libpmi0-dbg
+	dh_strip -pslurm-wlm-basic-plugins --dbg-package=slurm-wlm-basic-plugins-dbg
+	dh_strip -pslurm-client --dbg-package=slurm-client-dbg
+	dh_strip -pslurmd --dbg-package=slurmd-dbg
+	dh_strip -pslurmctld --dbg-package=slurmctld-dbg
+	dh_strip -pslurmdbd --dbg-package=slurmctld-dbg
+	# we do not care about debug symbols for those pkgs
+	dh_strip -plibslurmdb-perl
+	dh_strip -plibslurm-perl
+	dh_strip -psview
+	dh_strip -plibpam-slurm
 
 override_dh_auto_test:

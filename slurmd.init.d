@@ -237,7 +237,7 @@ case "$1" in
         ;;
     startclean)
         SLURMD_OPTIONS="-c $SLURMD_OPTIONS"
-        star slurmd "$SLURMD_OPTIONS"
+        start slurmd "$SLURMD_OPTIONS"
         ;;
     stop)
 	slurmstop

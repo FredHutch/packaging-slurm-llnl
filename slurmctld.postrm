@@ -23,17 +23,17 @@ case "$1" in
          rm -rf /var/run/slurm-llnl/slurmctld
          rm -rf /var/lib/slurm-llnl/slurmctld
          rm -f /var/log/slurm-llnl/slurmctld*.log*
-         if [ ! -e /usr/sbin/slurmd -a ! -e /usr/sbin/slurmdbd ] ; then
+         if [    ! -e /usr/sbin/slurmd \
+              -a ! -e /usr/sbin/slurmdbd \
+              -a ! -e /usr/bin/squeue ] ; then
             # Killing all slurm owned process
             pkill -9 -u slurm || true
             deluser --quiet slurm || true
             rm -rf /var/run/slurm-llnl
-            if [ ! -e /usr/bin/sinfo ] ; then
-	      if which ucf >/dev/null; then
-	        ucf --purge /etc/slurm-llnl/slurm.conf
-	      fi
-              rm -f /etc/slurm-llnl/slurm.conf
+            if which ucf >/dev/null; then
+              ucf --purge /etc/slurm-llnl/slurm.conf
             fi
+            rm -f /etc/slurm-llnl/slurm.conf
          fi
          ;;
 

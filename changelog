@@ -1,26 +1,58 @@
-slurm-llnl (15.08.0-1-trusty) unstable; urgency=medium
+slurm-llnl (15.08.0-1) unstable; urgency=medium
 
-  * Update for release
+  * New upstream release
 
- -- Michael Gutteridge <mrg@fredhutch.org>  Wed, 09 Sep 2015 16:04:00 -0700
+ -- Michael Gutteridge <mrg@fredhutch.org>  Thu, 10 Sep 2015 11:05:05 -0700
 
-slurm-llnl (15.08.0-pre3-1-trusty) unstable; urgency=medium
+slurm-llnl (14.11.8-4) unstable; urgency=medium
 
-  * Update for new slurm version
+  * Conflict with older versions of sinfo only
 
- -- Michael Gutteridge <mrg@fredhutch.org>  Mon, 06 Apr 2015 17:21:56 -0700
+ -- Mehdi Dogguy <mehdi@debian.org>  Wed, 19 Aug 2015 22:15:21 +0000
 
-slurm-llnl (15.08.0-pre3-trusty) unstable; urgency=medium
+slurm-llnl (14.11.8-3) unstable; urgency=medium
 
-  * Update for new slurm version
+  * Add libipmimonitoring-dev build dependency (Closes: #792368)
+  * Add librrd-dev build dependency (Closes: #792370)
 
- -- Michael Gutteridge <mrg@fredhutch.org>  Thu, 26 Mar 2015 11:51:53 -0700
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Wed, 15 Jul 2015 09:48:30 +0200
 
-slurm-llnl (15.08.0-pre2-trusty) unstable; urgency=medium
+slurm-llnl (14.11.8-2) unstable; urgency=medium
 
-  * Update for new slurm version
+  * Correct a typo in the slurmd init.d script (Closes: #792027) 
 
- -- Michael Gutteridge <mrg@fredhutch.org>  Tue, 03 Mar 2015 15:17:11 -0800
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Mon, 13 Jul 2015 08:55:20 +0200
+
+slurm-llnl (14.11.8-1) unstable; urgency=medium
+
+  * New upstream release
+  * Updated libslurm28 and libslurmdb28 symbol files
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Wed, 08 Jul 2015 11:01:46 +0200
+
+slurm-llnl (14.11.7-1) unstable; urgency=medium
+
+  * New upstream release 
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Thu, 02 Jul 2015 14:46:24 +0200
+
+slurm-llnl (14.11.6-1) unstable; urgency=medium
+
+  [ Gennaro Oliva ]
+  * New upstream release
+  * Minor man pages formatting changes
+  * Restore var/*/slurm-llnl dirnames in the html configurator tools
+  * Add --disable-debug to configure
+
+  [ Rémi Palancher ]
+  * Add -dbg packages for libs, binaries and plugins
+  * Remove autoreconf since not needed anymore
+  * Remove patch honor-without-rpath-hwloc since merged upstream
+  * Create user slurm on slurm-client pkg install (Closes: #783663)
+  * Add missing dep on ucf + adduser on pkgs
+  * Add missing dep for -client on -basic-plugins (Closes: #783662)
+
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Wed, 20 May 2015 16:47:32 +0200
 
 slurm-llnl (14.03.9-5) unstable; urgency=medium
 
