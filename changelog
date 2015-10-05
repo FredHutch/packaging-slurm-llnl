@@ -1,3 +1,9 @@
+slurm-llnl (15.08.1-1pre0) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Michael Gutteridge <mrg@fredhutch.org>  Mon, 05 Oct 2015 14:25:38 -0700
+
 slurm-llnl (15.08.0-1pre0) unstable; urgency=medium
 
   * Development changes
