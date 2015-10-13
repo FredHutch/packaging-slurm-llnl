@@ -8,14 +8,14 @@ libpmi0-dev/
 libpmi0/
 libslurm-perl/
 libslurm[0-9][0-9]/
+libslurm[0-9][0-9]-dbg/
 libslurmdb-dev/
 libslurmdb-perl/
 libslurmdb[0-9][0-9]/
+libslurmdb[0-9][0-9]-dbg/
 patches/fhcrc-docs
 autoreconf.*
 libpmi0-dbg/
-libslurm28-dbg/
-libslurmdb28-dbg/
 slurm-client-dbg/
 slurm-client/
 slurm-llnl-slurmdbd/
