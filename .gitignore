@@ -34,4 +34,4 @@ slurmdbd-dbg/
 slurmdbd/
 sview/
 tmp/
-
+*.symbols

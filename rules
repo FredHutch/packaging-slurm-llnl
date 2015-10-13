@@ -44,8 +44,8 @@ override_dh_auto_install:
 	done
 
 override_dh_strip:
-	dh_strip -plibslurm28 --dbg-package=libslurm28-dbg
-	dh_strip -plibslurmdb28 --dbg-package=libslurmdb28-dbg
+	dh_strip -plibslurm30 --dbg-package=libslurm30-dbg
+	dh_strip -plibslurmdb30 --dbg-package=libslurmdb30-dbg
 	dh_strip -plibpmi0 --dbg-package=libpmi0-dbg
 	dh_strip -pslurm-wlm-basic-plugins --dbg-package=slurm-wlm-basic-plugins-dbg
 	dh_strip -pslurm-client --dbg-package=slurm-client-dbg
