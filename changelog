@@ -1,3 +1,9 @@
+slurm-llnl (15.08.1-3) unstable; urgency=medium
+
+  * Updated build, fixed more regressions
+
+ -- Michael Gutteridge <mrg@fredhutch.org>  Sun, 18 Oct 2015 14:02:03 -0700
+
 slurm-llnl (15.08.1-1pre3) unstable; urgency=medium
 
   * Added patch for TRES data access
