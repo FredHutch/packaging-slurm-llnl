@@ -1,0 +1,2433 @@
+diff --git a/doc/man/man1/sacctmgr.1 b/doc/man/man1/sacctmgr.1
+index 780b729..a0e539f 100644
+--- a/doc/man/man1/sacctmgr.1
++++ b/doc/man/man1/sacctmgr.1
+@@ -1019,6 +1019,10 @@ The id of the QOS.
+ Maximum number of TRES minutes each job is able to use.
+ 
+ .TP
++\fIMaxTRESPerAccount\fP
++Maximum number of TRES each account is able to use.
++
++.TP
+ \fIMaxTRESPerJob\fP
+ Maximum number of TRES each job is able to use.
+ 
+@@ -1031,7 +1035,11 @@ Maximum number of TRES each node in a job allocation can use.
+ Maximum number of TRES each user is able to use.
+ 
+ .TP
+-\fIMaxJobs\fP
++\fIMaxJobsPerAccount\fP
++Maximum number of jobs each account is allowed to run at one time.
++
++.TP
++\fIMaxJobsPerUser\fP
+ Maximum number of jobs each user is allowed to run at one time.
+ 
+ .TP
+@@ -1040,7 +1048,11 @@ Minimum number of TRES each job running under this QOS must request.
+ Otherwise the job will pend until modified.
+ 
+ .TP
+-\fIMaxSubmitJobs\fP
++\fIMaxSubmitJobsPerAccount\fP
++Maximum number of jobs pending or running state at any time per account.
++
++.TP
++\fIMaxSubmitJobsPerUser\fP
+ Maximum number of jobs pending or running state at any time per user.
+ 
+ .TP
+@@ -1156,6 +1168,11 @@ To clear a previously set value use the modify command with a new
+ value of \-1.
+ 
+ .TP
++\fIMaxTRESPerAccount\fP
++Maximum number of TRES each account is able to use.
++To clear a previously set value use the modify command with a new value of \-1.
++
++.TP
+ \fIMaxTRESPerJob\fP
+ Maximum number of TRES each job is able to use.
+ To clear a previously set value use the modify command with a new
+@@ -1172,12 +1189,22 @@ Maximum number of TRES each user is able to use.
+ To clear a previously set value use the modify command with a new value of \-1.
+ 
+ .TP
+-\fIMaxJobs\fP
++\fIMaxJobsPerAccount\fP
++Maximum number of jobs each account is allowed to run at one time.
++To clear a previously set value use the modify command with a new value of \-1.
++
++.TP
++\fIMaxJobsPerUser\fP
+ Maximum number of jobs each user is allowed to run at one time.
+ To clear a previously set value use the modify command with a new value of \-1.
+ 
+ .TP
+-\fIMaxSubmitJobs\fP
++\fIMaxSubmitJobsPerAccount\fP
++Maximum number of jobs pending or running state at any time per account.
++To clear a previously set value use the modify command with a new value of \-1.
++
++.TP
++\fIMaxSubmitJobsPerUser\fP
+ Maximum number of jobs pending or running state at any time per user.
+ To clear a previously set value use the modify command with a new value of \-1.
+ 
+diff --git a/slurm/slurm.h.in b/slurm/slurm.h.in
+index 3e643ed..095c2fc 100644
+--- a/slurm/slurm.h.in
++++ b/slurm/slurm.h.in
+@@ -536,7 +536,19 @@ enum job_state_reason {
+ 				      * (burst buffer) */
+ 	WAIT_QOS_MIN_BB,           /* QOS MinTRESPerJob not reached
+ 				    * (burst buffer) */
+-};
++	/* QOS MaxTRESPerAccount */
++	WAIT_QOS_MAX_BB_PER_ACCT,     /* exceeded burst buffer */
++	WAIT_QOS_MAX_CPU_PER_ACCT,    /* exceeded CPUs */
++	WAIT_QOS_MAX_ENERGY_PER_ACCT, /* exceeded Energy */
++	WAIT_QOS_MAX_GRES_PER_ACCT,   /* exceeded GRES */
++	WAIT_QOS_MAX_NODE_PER_ACCT,   /* exceeded Nodes */
++	WAIT_QOS_MAX_LIC_PER_ACCT,    /* exceeded Licenses */
++	WAIT_QOS_MAX_MEM_PER_ACCT,    /* exceeded Memory */
++	WAIT_QOS_MAX_UNK_PER_ACCT,    /* exceeded Unknown */
++	/********************/
++	WAIT_QOS_MAX_JOB_PER_ACCT,    /* QOS MaxJobPerAccount exceeded */
++	WAIT_QOS_MAX_SUB_JOB_PER_ACCT,/* QOS MaxJobSubmitSPerAccount exceeded */
++ };
+ 
+ enum job_acct_types {
+ 	JOB_START,
+diff --git a/slurm/slurmdb.h b/slurm/slurmdb.h
+index d323455..719f8d4 100644
+--- a/slurm/slurmdb.h
++++ b/slurm/slurmdb.h
+@@ -724,6 +724,8 @@ typedef struct {
+ } slurmdb_job_rec_t;
+ 
+ typedef struct {
++	List acct_limit_list; /* slurmdb_used_limits_t's (DON'T PACK
++			       * for state file) */
+ 	List job_list; /* list of job pointers to submitted/running
+ 			  jobs (DON'T PACK) */
+ 	uint32_t grp_used_jobs;	/* count of active jobs (DON'T PACK
+@@ -781,8 +783,12 @@ typedef struct {
+ 					   * (DON'T PACK) */
+ 	uint32_t grp_wall; /* total time in hours this qos can run for */
+ 
++	uint32_t max_jobs_pa;	/* max number of jobs an account can
++				 * run with this qos at one time */
+ 	uint32_t max_jobs_pu;	/* max number of jobs a user can
+ 				 * run with this qos at one time */
++	uint32_t max_submit_jobs_pa; /* max number of jobs an account can
++					submit with this qos at once */
+ 	uint32_t max_submit_jobs_pu; /* max number of jobs a user can
+ 					submit with this qos at once */
+ 	char *max_tres_mins_pj;    /* max number of tres seconds this
+@@ -791,6 +797,12 @@ typedef struct {
+ 					  * based off the ordering of the
+ 					  * total number of TRES in the system
+ 					  * (DON'T PACK) */
++	char *max_tres_pa;         /* max number of tres this
++				    * QOS can allocate per account */
++	uint64_t *max_tres_pa_ctld;   /* max_tres_pa broken out in an array
++				       * based off the ordering of the
++				       * total number of TRES in the system
++				       * (DON'T PACK) */
+ 	char *max_tres_pj;         /* max number of tres this
+ 				    * qos can allocate per job */
+ 	uint64_t *max_tres_pj_ctld;   /* max_tres_pj broken out in an array
+@@ -809,6 +821,18 @@ typedef struct {
+ 				       * based off the ordering of the
+ 				       * total number of TRES in the system
+ 				       * (DON'T PACK) */
++	char *max_tres_run_mins_pa;   /* max number of tres minutes this
++				       * qos can having running at one
++				       * time per account, currently
++				       * this doesn't do anything.
++				       */
++	uint64_t *max_tres_run_mins_pa_ctld; /* max_tres_run_mins_pa
++					      * broken out in an array
++					      * based off the ordering
++					      * of the total number of TRES in
++					      * the system, currently
++					      * this doesn't do anything.
++					      * (DON'T PACK) */
+ 	char *max_tres_run_mins_pu;   /* max number of tres minutes this
+ 				       * qos can having running at one
+ 				       * time, currently this doesn't
+@@ -978,15 +1002,16 @@ typedef struct {
+ } slurmdb_txn_rec_t;
+ 
+ /* Right now this is used in the slurmdb_qos_rec_t structure.  In the
+- * user_limit_list. */
++ * user_limit_list and acct_limit_list. */
+ typedef struct {
++	char *acct; /* If limits for an account this is the accounts name */
+ 	uint32_t jobs;	/* count of active jobs */
+ 	uint32_t submit_jobs; /* count of jobs pending or running */
+ 	uint64_t *tres; /* array of TRES allocated */
+ 	uint64_t *tres_run_mins; /* array of how many TRES mins are
+ 				  * allocated currently, currently this doesn't
+ 				  * do anything and isn't set up. */
+-	uint32_t uid;
++	uint32_t uid; /* If limits for a user this is the users uid */
+ } slurmdb_used_limits_t;
+ 
+ typedef struct {
+diff --git a/src/common/assoc_mgr.c b/src/common/assoc_mgr.c
+index f2de7d1..253d037 100644
+--- a/src/common/assoc_mgr.c
++++ b/src/common/assoc_mgr.c
+@@ -414,21 +414,20 @@ static int _clear_used_assoc_info(slurmdb_assoc_rec_t *assoc)
+ 	return SLURM_SUCCESS;
+ }
+ 
+-static void _clear_qos_user_limit_info(slurmdb_qos_rec_t *qos_ptr)
++static void _clear_qos_used_limit_list(List used_limit_list, uint32_t tres_cnt)
+ {
+ 	slurmdb_used_limits_t *used_limits = NULL;
+ 	ListIterator itr = NULL;
+ 	int i;
+ 
+-	if (!qos_ptr->usage->user_limit_list
+-	    || !list_count(qos_ptr->usage->user_limit_list))
++	if (!used_limit_list || !list_count(used_limit_list))
+ 		return;
+ 
+-	itr = list_iterator_create(qos_ptr->usage->user_limit_list);
++	itr = list_iterator_create(used_limit_list);
+ 	while ((used_limits = list_next(itr))) {
+ 		used_limits->jobs = 0;
+ 		used_limits->submit_jobs = 0;
+-		for (i=0; i<qos_ptr->usage->tres_cnt; i++) {
++		for (i=0; i<tres_cnt; i++) {
+ 			used_limits->tres[i] = 0;
+ 			used_limits->tres_run_mins[i] = 0;
+ 		}
+@@ -438,6 +437,20 @@ static void _clear_qos_user_limit_info(slurmdb_qos_rec_t *qos_ptr)
+ 	return;
+ }
+ 
++
++
++static void _clear_qos_acct_limit_info(slurmdb_qos_rec_t *qos_ptr)
++{
++	_clear_qos_used_limit_list(qos_ptr->usage->acct_limit_list,
++				   qos_ptr->usage->tres_cnt);
++}
++
++static void _clear_qos_user_limit_info(slurmdb_qos_rec_t *qos_ptr)
++{
++	_clear_qos_used_limit_list(qos_ptr->usage->user_limit_list,
++				   qos_ptr->usage->tres_cnt);
++}
++
+ static int _clear_used_qos_info(slurmdb_qos_rec_t *qos)
+ {
+ 	int i;
+@@ -456,6 +469,7 @@ static int _clear_used_qos_info(slurmdb_qos_rec_t *qos)
+ 	 * else where since sometimes we call this and do not want
+ 	 * shares reset */
+ 
++	_clear_qos_acct_limit_info(qos);
+ 	_clear_qos_user_limit_info(qos);
+ 
+ 	return SLURM_SUCCESS;
+@@ -2512,15 +2526,21 @@ extern int assoc_mgr_fill_in_qos(void *db_conn, slurmdb_qos_rec_t *qos,
+ 
+ 	if (!qos->max_tres_mins_pj)
+ 		qos->max_tres_mins_pj = found_qos->max_tres_mins_pj;
++	if (!qos->max_tres_run_mins_pa)
++		qos->max_tres_run_mins_pa = found_qos->max_tres_run_mins_pa;
+ 	if (!qos->max_tres_run_mins_pu)
+ 		qos->max_tres_run_mins_pu = found_qos->max_tres_run_mins_pu;
++	if (!qos->max_tres_pa)
++		qos->max_tres_pa     = found_qos->max_tres_pa;
+ 	if (!qos->max_tres_pj)
+ 		qos->max_tres_pj     = found_qos->max_tres_pj;
+ 	if (!qos->max_tres_pn)
+ 		qos->max_tres_pn     = found_qos->max_tres_pn;
+ 	if (!qos->max_tres_pu)
+ 		qos->max_tres_pu     = found_qos->max_tres_pu;
++	qos->max_jobs_pa     = found_qos->max_jobs_pa;
+ 	qos->max_jobs_pu     = found_qos->max_jobs_pu;
++	qos->max_submit_jobs_pa = found_qos->max_submit_jobs_pa;
+ 	qos->max_submit_jobs_pu = found_qos->max_submit_jobs_pu;
+ 	qos->max_wall_pj     = found_qos->max_wall_pj;
+ 
+@@ -2543,6 +2563,9 @@ extern int assoc_mgr_fill_in_qos(void *db_conn, slurmdb_qos_rec_t *qos,
+ 	   is really in existance here, if they really want it they can
+ 	   use the pointer that is returned. */
+ 
++	/* if (!qos->usage->acct_limit_list) */
++	/* 	qos->usage->acct_limit_list = found_qos->usage->acct_limit_list; */
++
+ 	/* qos->usage->grp_used_tres   = found_qos->usage->grp_used_tres; */
+ 	/* qos->usage->grp_used_tres_run_mins  = */
+ 	/* 	found_qos->usage->grp_used_tres_run_mins; */
+@@ -4207,6 +4230,18 @@ extern int assoc_mgr_update_qos(slurmdb_update_object_t *update, bool locked)
+ 				rec->grp_wall = object->grp_wall;
+ 			}
+ 
++			if (object->max_tres_pa) {
++				update_jobs = true;
++				xfree(rec->max_tres_pa);
++				if (object->max_tres_pa[0]) {
++					rec->max_tres_pa = object->max_tres_pa;
++					object->max_tres_pa = NULL;
++				}
++				assoc_mgr_set_tres_cnt_array(
++					&rec->max_tres_pa_ctld,
++					rec->max_tres_pa, INFINITE64, 1);
++			}
++
+ 			if (object->max_tres_pj) {
+ 				update_jobs = true;
+ 				xfree(rec->max_tres_pj);
+@@ -4255,6 +4290,19 @@ extern int assoc_mgr_update_qos(slurmdb_update_object_t *update, bool locked)
+ 					rec->max_tres_mins_pj, INFINITE64, 1);
+ 			}
+ 
++			if (object->max_tres_run_mins_pa) {
++				xfree(rec->max_tres_run_mins_pa);
++				if (object->max_tres_run_mins_pa[0]) {
++					rec->max_tres_run_mins_pa =
++						object->max_tres_run_mins_pa;
++					object->max_tres_run_mins_pa = NULL;
++				}
++				assoc_mgr_set_tres_cnt_array(
++					&rec->max_tres_run_mins_pa_ctld,
++					rec->max_tres_run_mins_pa,
++					INFINITE64, 1);
++			}
++
+ 			if (object->max_tres_run_mins_pu) {
+ 				xfree(rec->max_tres_run_mins_pu);
+ 				if (object->max_tres_run_mins_pu[0]) {
+@@ -4268,11 +4316,20 @@ extern int assoc_mgr_update_qos(slurmdb_update_object_t *update, bool locked)
+ 					INFINITE64, 1);
+ 			}
+ 
++			if (object->max_jobs_pa != NO_VAL)
++				rec->max_jobs_pa = object->max_jobs_pa;
++
+ 			if (object->max_jobs_pu != NO_VAL)
+ 				rec->max_jobs_pu = object->max_jobs_pu;
++
++			if (object->max_submit_jobs_pa != NO_VAL)
++				rec->max_submit_jobs_pa =
++					object->max_submit_jobs_pa;
++
+ 			if (object->max_submit_jobs_pu != NO_VAL)
+ 				rec->max_submit_jobs_pu =
+ 					object->max_submit_jobs_pu;
++
+ 			if (object->max_wall_pj != NO_VAL) {
+ 				update_jobs = true;
+ 				rec->max_wall_pj = object->max_wall_pj;
+@@ -5883,6 +5940,8 @@ extern void assoc_mgr_set_qos_tres_cnt(slurmdb_qos_rec_t *qos)
+ 				     qos->grp_tres_mins, INFINITE64, 1);
+ 	assoc_mgr_set_tres_cnt_array(&qos->grp_tres_run_mins_ctld,
+ 				     qos->grp_tres_run_mins, INFINITE64, 1);
++	assoc_mgr_set_tres_cnt_array(&qos->max_tres_pa_ctld,
++				     qos->max_tres_pa, INFINITE64, 1);
+ 	assoc_mgr_set_tres_cnt_array(&qos->max_tres_pj_ctld,
+ 				     qos->max_tres_pj, INFINITE64, 1);
+ 	assoc_mgr_set_tres_cnt_array(&qos->max_tres_pn_ctld,
+@@ -5891,6 +5950,8 @@ extern void assoc_mgr_set_qos_tres_cnt(slurmdb_qos_rec_t *qos)
+ 				     qos->max_tres_pu, INFINITE64, 1);
+ 	assoc_mgr_set_tres_cnt_array(&qos->max_tres_mins_pj_ctld,
+ 				     qos->max_tres_mins_pj, INFINITE64, 1);
++	assoc_mgr_set_tres_cnt_array(&qos->max_tres_run_mins_pa_ctld,
++				     qos->max_tres_run_mins_pa, INFINITE64, 1);
+ 	assoc_mgr_set_tres_cnt_array(&qos->max_tres_run_mins_pu_ctld,
+ 				     qos->max_tres_run_mins_pu, INFINITE64, 1);
+ 	assoc_mgr_set_tres_cnt_array(&qos->min_tres_pj_ctld,
+diff --git a/src/common/slurm_protocol_common.h b/src/common/slurm_protocol_common.h
+index 7f39dbb..fb59313 100644
+--- a/src/common/slurm_protocol_common.h
++++ b/src/common/slurm_protocol_common.h
+@@ -78,11 +78,12 @@
+  * done here with them since we have to support old version of archive
+  * files since they don't update once they are created.
+  */
++#define SLURM_16_05_PROTOCOL_VERSION ((30 << 8) | 0)
+ #define SLURM_15_08_PROTOCOL_VERSION ((29 << 8) | 0)
+ #define SLURM_14_11_PROTOCOL_VERSION ((28 << 8) | 0)
+ #define SLURM_14_03_PROTOCOL_VERSION ((27 << 8) | 0)
+ 
+-#define SLURM_PROTOCOL_VERSION SLURM_15_08_PROTOCOL_VERSION
++#define SLURM_PROTOCOL_VERSION SLURM_16_05_PROTOCOL_VERSION
+ #define SLURM_MIN_PROTOCOL_VERSION SLURM_14_03_PROTOCOL_VERSION
+ 
+ #if 0
+diff --git a/src/common/slurmdb_defs.c b/src/common/slurmdb_defs.c
+index cfe01f7..3ec54de 100644
+--- a/src/common/slurmdb_defs.c
++++ b/src/common/slurmdb_defs.c
+@@ -562,6 +562,7 @@ extern void slurmdb_destroy_qos_usage(void *object)
+ 		(slurmdb_qos_usage_t *)object;
+ 
+ 	if (usage) {
++		FREE_NULL_LIST(usage->acct_limit_list);
+ 		FREE_NULL_LIST(usage->job_list);
+ 		FREE_NULL_LIST(usage->user_limit_list);
+ 		xfree(usage->grp_used_tres_run_secs);
+@@ -752,8 +753,12 @@ extern void slurmdb_free_qos_rec_members(slurmdb_qos_rec_t *qos)
+ 		xfree(qos->grp_tres_run_mins_ctld);
+ 		xfree(qos->max_tres_mins_pj);
+ 		xfree(qos->max_tres_mins_pj_ctld);
++		xfree(qos->max_tres_run_mins_pa);
++		xfree(qos->max_tres_run_mins_pa_ctld);
+ 		xfree(qos->max_tres_run_mins_pu);
+ 		xfree(qos->max_tres_run_mins_pu_ctld);
++		xfree(qos->max_tres_pa);
++		xfree(qos->max_tres_pa_ctld);
+ 		xfree(qos->max_tres_pj);
+ 		xfree(qos->max_tres_pj_ctld);
+ 		xfree(qos->max_tres_pn);
+@@ -1120,6 +1125,7 @@ extern void slurmdb_destroy_used_limits(void *object)
+ 		(slurmdb_used_limits_t *)object;
+ 
+ 	if (slurmdb_used_limits) {
++		xfree(slurmdb_used_limits->acct);
+ 		xfree(slurmdb_used_limits->tres);
+ 		xfree(slurmdb_used_limits->tres_run_mins);
+ 		xfree(slurmdb_used_limits);
+@@ -1356,10 +1362,14 @@ extern void slurmdb_init_qos_rec(slurmdb_qos_rec_t *qos, bool free_it,
+ 	qos->grp_wall = init_val;
+ 
+ 	/* qos->max_tres_mins_pj = NULL; */
++	/* qos->max_tres_run_mins_pa = NULL; */
+ 	/* qos->max_tres_run_mins_pu = NULL; */
++	/* qos->max_tres_pa = NULL; */
+ 	/* qos->max_tres_pj = NULL; */
+ 	/* qos->max_tres_pu = NULL; */
++	qos->max_jobs_pa = init_val;
+ 	qos->max_jobs_pu = init_val;
++	qos->max_submit_jobs_pa = init_val;
+ 	qos->max_submit_jobs_pu = init_val;
+ 	qos->max_wall_pj = init_val;
+ 
+@@ -2805,16 +2815,22 @@ extern void slurmdb_copy_qos_rec_limits(slurmdb_qos_rec_t *out,
+ 	out->grp_tres_run_mins = xstrdup(in->grp_tres_run_mins);
+ 	out->grp_wall = in->grp_wall;
+ 
++	out->max_jobs_pa = in->max_jobs_pa;
+ 	out->max_jobs_pu = in->max_jobs_pu;
++	out->max_submit_jobs_pa = in->max_submit_jobs_pa;
+ 	out->max_submit_jobs_pu = in->max_submit_jobs_pu;
+ 	xfree(out->max_tres_mins_pj);
+ 	out->max_tres_mins_pj =	xstrdup(in->max_tres_mins_pj);
++	xfree(out->max_tres_pa);
++	out->max_tres_pa = xstrdup(in->max_tres_pa);
+ 	xfree(out->max_tres_pj);
+ 	out->max_tres_pj = xstrdup(in->max_tres_pj);
+ 	xfree(out->max_tres_pn);
+ 	out->max_tres_pn = xstrdup(in->max_tres_pn);
+ 	xfree(out->max_tres_pu);
+ 	out->max_tres_pu = xstrdup(in->max_tres_pu);
++	xfree(out->max_tres_run_mins_pa);
++	out->max_tres_run_mins_pa = xstrdup(in->max_tres_run_mins_pa);
+ 	xfree(out->max_tres_run_mins_pu);
+ 	out->max_tres_run_mins_pu = xstrdup(in->max_tres_run_mins_pu);
+ 	out->max_wall_pj = in->max_wall_pj;
+diff --git a/src/common/slurmdb_pack.c b/src/common/slurmdb_pack.c
+index 9a5fcce..b57d5cb 100644
+--- a/src/common/slurmdb_pack.c
++++ b/src/common/slurmdb_pack.c
+@@ -288,20 +288,39 @@ extern void slurmdb_pack_used_limits(void *in, uint32_t tres_cnt,
+ {
+ 	slurmdb_used_limits_t *object = (slurmdb_used_limits_t *)in;
+ 
+-	if (!object) {
+-		pack32(0, buffer);
+-		pack32(0, buffer);
+-		pack64_array(NULL, 0, buffer);
+-		pack64_array(NULL, 0, buffer);
+-		pack32(0, buffer);
+-		return;
+-	}
++	if (rpc_version >= SLURM_16_05_PROTOCOL_VERSION) {
++		if (!object) {
++			packnull(buffer);
++			pack32(0, buffer);
++			pack32(0, buffer);
++			pack64_array(NULL, 0, buffer);
++			pack64_array(NULL, 0, buffer);
++			pack32(0, buffer);
++			return;
++		}
++
++		packstr(object->acct, buffer);
++		pack32(object->jobs, buffer);
++		pack32(object->submit_jobs, buffer);
++		pack64_array(object->tres, tres_cnt, buffer);
++		pack64_array(object->tres_run_mins, tres_cnt, buffer);
++		pack32(object->uid, buffer);
++	} else if (rpc_version >= SLURM_15_08_PROTOCOL_VERSION) {
++		if (!object) {
++			pack32(0, buffer);
++			pack32(0, buffer);
++			pack64_array(NULL, 0, buffer);
++			pack64_array(NULL, 0, buffer);
++			pack32(0, buffer);
++			return;
++		}
+ 
+-	pack32(object->jobs, buffer);
+-	pack32(object->submit_jobs, buffer);
+-	pack64_array(object->tres, tres_cnt, buffer);
+-	pack64_array(object->tres_run_mins, tres_cnt, buffer);
+-	pack32(object->uid, buffer);
++		pack32(object->jobs, buffer);
++		pack32(object->submit_jobs, buffer);
++		pack64_array(object->tres, tres_cnt, buffer);
++		pack64_array(object->tres_run_mins, tres_cnt, buffer);
++		pack32(object->uid, buffer);
++	}
+ }
+ 
+ extern int slurmdb_unpack_used_limits(void **object, uint32_t tres_cnt,
+@@ -313,16 +332,33 @@ extern int slurmdb_unpack_used_limits(void **object, uint32_t tres_cnt,
+ 
+ 	*object = (void *)object_ptr;
+ 
+-	safe_unpack32(&object_ptr->jobs, buffer);
+-	safe_unpack32(&object_ptr->submit_jobs, buffer);
+-	safe_unpack64_array(&object_ptr->tres, &tmp32, buffer);
+-	if (tmp32 != tres_cnt)
+-		goto unpack_error;
+-	safe_unpack64_array(&object_ptr->tres_run_mins, &tmp32, buffer);
+-	if (tmp32 != tres_cnt)
+-		goto unpack_error;
++	if (rpc_version >= SLURM_16_05_PROTOCOL_VERSION) {
++		safe_unpackstr_xmalloc(&object_ptr->acct, &tmp32, buffer);
++		safe_unpack32(&object_ptr->jobs, buffer);
++		safe_unpack32(&object_ptr->submit_jobs, buffer);
++		safe_unpack64_array(&object_ptr->tres, &tmp32, buffer);
++		if (tmp32 != tres_cnt)
++			goto unpack_error;
++		safe_unpack64_array(&object_ptr->tres_run_mins, &tmp32, buffer);
++		if (tmp32 != tres_cnt)
++			goto unpack_error;
++
++		safe_unpack32(&object_ptr->uid, buffer);
++	} else if (rpc_version >= SLURM_15_08_PROTOCOL_VERSION) {
++		safe_unpack32(&object_ptr->jobs, buffer);
++		safe_unpack32(&object_ptr->submit_jobs, buffer);
++		safe_unpack64_array(&object_ptr->tres, &tmp32, buffer);
++		if (tmp32 != tres_cnt)
++			goto unpack_error;
++		safe_unpack64_array(&object_ptr->tres_run_mins, &tmp32, buffer);
++		if (tmp32 != tres_cnt)
++			goto unpack_error;
+ 
+-	safe_unpack32(&object_ptr->uid, buffer);
++		safe_unpack32(&object_ptr->uid, buffer);
++	} else {
++		error("%s: too old of a version %u", __func__, rpc_version);
++		goto unpack_error;
++	}
+ 
+ 	return SLURM_SUCCESS;
+ 
+@@ -1645,7 +1681,97 @@ extern void slurmdb_pack_qos_rec(void *in, uint16_t rpc_version, Buf buffer)
+ 	char *tmp_info = NULL;
+ 	uint64_t uint64_tmp;
+ 
+-	if (rpc_version >= SLURM_15_08_PROTOCOL_VERSION) {
++	if (rpc_version >= SLURM_16_05_PROTOCOL_VERSION) {
++		if (!object) {
++			packnull(buffer);
++			pack32(0, buffer);
++
++			pack32(QOS_FLAG_NOTSET, buffer);
++
++			pack32(NO_VAL, buffer);
++			packnull(buffer);
++			packnull(buffer);
++			packnull(buffer);
++			pack32(NO_VAL, buffer);
++			pack32(NO_VAL, buffer);
++			pack32(NO_VAL, buffer);
++
++			packnull(buffer);
++			packnull(buffer);
++			packnull(buffer);
++			packnull(buffer);
++			packnull(buffer);
++			packnull(buffer);
++			packnull(buffer);
++			pack32(NO_VAL, buffer);
++			pack32(NO_VAL, buffer);
++			pack32(NO_VAL, buffer);
++			pack32(NO_VAL, buffer);
++			pack32(NO_VAL, buffer);
++			packnull(buffer);
++
++			packnull(buffer);
++
++			pack_bit_str_hex(NULL, buffer);
++			pack32(NO_VAL, buffer);
++
++			pack16(0, buffer);
++			pack32(0, buffer);
++
++			packdouble(NO_VAL64, buffer);
++			packdouble(NO_VAL64, buffer);
++			return;
++		}
++		packstr(object->description, buffer);
++		pack32(object->id, buffer);
++
++		pack32(object->flags, buffer);
++
++		pack32(object->grace_time, buffer);
++		packstr(object->grp_tres_mins, buffer);
++		packstr(object->grp_tres_run_mins, buffer);
++		packstr(object->grp_tres, buffer);
++		pack32(object->grp_jobs, buffer);
++		pack32(object->grp_submit_jobs, buffer);
++		pack32(object->grp_wall, buffer);
++
++		packstr(object->max_tres_mins_pj, buffer);
++		packstr(object->max_tres_run_mins_pa, buffer);
++		packstr(object->max_tres_run_mins_pu, buffer);
++		packstr(object->max_tres_pa, buffer);
++		packstr(object->max_tres_pj, buffer);
++		packstr(object->max_tres_pn, buffer);
++		packstr(object->max_tres_pu, buffer);
++		pack32(object->max_jobs_pa, buffer);
++		pack32(object->max_jobs_pu, buffer);
++		pack32(object->max_submit_jobs_pa, buffer);
++		pack32(object->max_submit_jobs_pu, buffer);
++		pack32(object->max_wall_pj, buffer);
++		packstr(object->min_tres_pj, buffer);
++
++		packstr(object->name, buffer);
++
++		pack_bit_str_hex(object->preempt_bitstr, buffer);
++
++		if (object->preempt_list)
++			count = list_count(object->preempt_list);
++
++		pack32(count, buffer);
++
++		if (count && count != NO_VAL) {
++			itr = list_iterator_create(object->preempt_list);
++			while ((tmp_info = list_next(itr))) {
++				packstr(tmp_info, buffer);
++			}
++			list_iterator_destroy(itr);
++		}
++
++		pack16(object->preempt_mode, buffer);
++		pack32(object->priority, buffer);
++
++		packdouble(object->usage_factor, buffer);
++		packdouble(object->usage_thres, buffer);
++	} else if (rpc_version >= SLURM_15_08_PROTOCOL_VERSION) {
+ 		if (!object) {
+ 			packnull(buffer);
+ 			pack32(0, buffer);
+@@ -1980,7 +2106,68 @@ extern int slurmdb_unpack_qos_rec(void **object, uint16_t rpc_version,
+ 
+ 	slurmdb_init_qos_rec(object_ptr, 0, NO_VAL);
+ 
+-	if (rpc_version >= SLURM_15_08_PROTOCOL_VERSION) {
++	if (rpc_version >= SLURM_16_05_PROTOCOL_VERSION) {
++		safe_unpackstr_xmalloc(&object_ptr->description,
++				       &uint32_tmp, buffer);
++		safe_unpack32(&object_ptr->id, buffer);
++
++		safe_unpack32(&object_ptr->flags, buffer);
++
++		safe_unpack32(&object_ptr->grace_time, buffer);
++		safe_unpackstr_xmalloc(&object_ptr->grp_tres_mins,
++				       &uint32_tmp, buffer);
++		safe_unpackstr_xmalloc(&object_ptr->grp_tres_run_mins,
++				       &uint32_tmp, buffer);
++		safe_unpackstr_xmalloc(&object_ptr->grp_tres,
++				       &uint32_tmp, buffer);
++		safe_unpack32(&object_ptr->grp_jobs, buffer);
++		safe_unpack32(&object_ptr->grp_submit_jobs, buffer);
++		safe_unpack32(&object_ptr->grp_wall, buffer);
++
++		safe_unpackstr_xmalloc(&object_ptr->max_tres_mins_pj,
++				       &uint32_tmp, buffer);
++		safe_unpackstr_xmalloc(&object_ptr->max_tres_run_mins_pa,
++				       &uint32_tmp, buffer);
++		safe_unpackstr_xmalloc(&object_ptr->max_tres_run_mins_pu,
++				       &uint32_tmp, buffer);
++		safe_unpackstr_xmalloc(&object_ptr->max_tres_pa,
++				       &uint32_tmp, buffer);
++		safe_unpackstr_xmalloc(&object_ptr->max_tres_pj,
++				       &uint32_tmp, buffer);
++		safe_unpackstr_xmalloc(&object_ptr->max_tres_pn,
++				       &uint32_tmp, buffer);
++		safe_unpackstr_xmalloc(&object_ptr->max_tres_pu,
++				       &uint32_tmp, buffer);
++		safe_unpack32(&object_ptr->max_jobs_pa, buffer);
++		safe_unpack32(&object_ptr->max_jobs_pu, buffer);
++		safe_unpack32(&object_ptr->max_submit_jobs_pa, buffer);
++		safe_unpack32(&object_ptr->max_submit_jobs_pu, buffer);
++		safe_unpack32(&object_ptr->max_wall_pj, buffer);
++		safe_unpackstr_xmalloc(&object_ptr->min_tres_pj,
++				       &uint32_tmp, buffer);
++
++		safe_unpackstr_xmalloc(&object_ptr->name, &uint32_tmp, buffer);
++
++		unpack_bit_str_hex(&object_ptr->preempt_bitstr, buffer);
++
++		safe_unpack32(&count, buffer);
++		if (count != NO_VAL) {
++			object_ptr->preempt_list =
++				list_create(slurm_destroy_char);
++			for (i = 0; i < count; i++) {
++				safe_unpackstr_xmalloc(&tmp_info, &uint32_tmp,
++						       buffer);
++				list_append(object_ptr->preempt_list,
++					    tmp_info);
++			}
++		}
++
++		safe_unpack16(&object_ptr->preempt_mode, buffer);
++		safe_unpack32(&object_ptr->priority, buffer);
++
++		safe_unpackdouble(&object_ptr->usage_factor, buffer);
++		safe_unpackdouble(&object_ptr->usage_thres, buffer);
++	} else if (rpc_version >= SLURM_15_08_PROTOCOL_VERSION) {
+ 		safe_unpackstr_xmalloc(&object_ptr->description,
+ 				       &uint32_tmp, buffer);
+ 		safe_unpack32(&object_ptr->id, buffer);
+@@ -2332,27 +2519,78 @@ extern void slurmdb_pack_qos_usage(void *in, uint16_t rpc_version, Buf buffer)
+ 	ListIterator itr;
+ 	void *used_limits;
+ 
+-	pack32(usage->grp_used_jobs, buffer);
+-	pack32(usage->grp_used_submit_jobs, buffer);
+-	pack64_array(usage->grp_used_tres, usage->tres_cnt, buffer);
+-	pack64_array(usage->grp_used_tres_run_secs, usage->tres_cnt, buffer);
+-	packdouble(usage->grp_used_wall, buffer);
+-	packdouble(usage->norm_priority, buffer);
+-	packlongdouble(usage->usage_raw, buffer);
+-	packlongdouble_array(usage->usage_tres_raw, usage->tres_cnt, buffer);
++	if (rpc_version >= SLURM_16_05_PROTOCOL_VERSION) {
++		pack32(usage->grp_used_jobs, buffer);
++		pack32(usage->grp_used_submit_jobs, buffer);
++		pack64_array(usage->grp_used_tres, usage->tres_cnt, buffer);
++		pack64_array(usage->grp_used_tres_run_secs,
++			     usage->tres_cnt, buffer);
++		packdouble(usage->grp_used_wall, buffer);
++		packdouble(usage->norm_priority, buffer);
++		packlongdouble(usage->usage_raw, buffer);
++		packlongdouble_array(usage->usage_tres_raw,
++				     usage->tres_cnt, buffer);
++
++		if (!usage->user_limit_list ||
++		    !(count = list_count(usage->user_limit_list)))
++			count = NO_VAL;
+ 
+-	if (!usage->user_limit_list ||
+-	    !(count = list_count(usage->user_limit_list)))
+-		count = NO_VAL;
++		/* We have to pack anything that is verified by
++		 * tres_cnt after this.  It is used in the unpack,
++		 * that is the reason it isn't alpha.
++		 */
++		pack32(count, buffer);
++		if (count != NO_VAL) {
++			itr = list_iterator_create(usage->user_limit_list);
++			while ((used_limits = list_next(itr)))
++				slurmdb_pack_used_limits(
++					used_limits, usage->tres_cnt,
++					rpc_version, buffer);
++			list_iterator_destroy(itr);
++		}
++		if (!usage->acct_limit_list ||
++		    !(count = list_count(usage->acct_limit_list)))
++			count = NO_VAL;
+ 
+-	pack32(count, buffer);
+-	if (count != NO_VAL) {
+-		itr = list_iterator_create(usage->user_limit_list);
+-		while ((used_limits = list_next(itr)))
+-			slurmdb_pack_used_limits(used_limits, usage->tres_cnt,
+-						 rpc_version, buffer);
+-		list_iterator_destroy(itr);
++		pack32(count, buffer);
++		if (count != NO_VAL) {
++			itr = list_iterator_create(usage->acct_limit_list);
++			while ((used_limits = list_next(itr)))
++				slurmdb_pack_used_limits(
++					used_limits, usage->tres_cnt,
++					rpc_version, buffer);
++			list_iterator_destroy(itr);
++		}
++	} else if (rpc_version >= SLURM_15_08_PROTOCOL_VERSION) {
++		pack32(usage->grp_used_jobs, buffer);
++		pack32(usage->grp_used_submit_jobs, buffer);
++		pack64_array(usage->grp_used_tres, usage->tres_cnt, buffer);
++		pack64_array(usage->grp_used_tres_run_secs,
++			     usage->tres_cnt, buffer);
++		packdouble(usage->grp_used_wall, buffer);
++		packdouble(usage->norm_priority, buffer);
++		packlongdouble(usage->usage_raw, buffer);
++		packlongdouble_array(usage->usage_tres_raw,
++				     usage->tres_cnt, buffer);
++
++		if (!usage->user_limit_list ||
++		    !(count = list_count(usage->user_limit_list)))
++			count = NO_VAL;
++
++		pack32(count, buffer);
++		if (count != NO_VAL) {
++			itr = list_iterator_create(usage->user_limit_list);
++			while ((used_limits = list_next(itr)))
++				slurmdb_pack_used_limits(
++					used_limits, usage->tres_cnt,
++					rpc_version, buffer);
++			list_iterator_destroy(itr);
++		}
++	} else {
++		error("%s: version too old %u", __func__, rpc_version);
++		return;
+ 	}
++
+ }
+ 
+ extern int slurmdb_unpack_qos_usage(void **object, uint16_t rpc_version,
+@@ -2366,30 +2604,81 @@ extern int slurmdb_unpack_qos_usage(void **object, uint16_t rpc_version,
+ 
+ 	*object = object_ptr;
+ 
+-	safe_unpack32(&object_ptr->grp_used_jobs, buffer);
+-	safe_unpack32(&object_ptr->grp_used_submit_jobs, buffer);
+-	safe_unpack64_array(&object_ptr->grp_used_tres,
+-			    &object_ptr->tres_cnt, buffer);
+-	safe_unpack64_array(&object_ptr->grp_used_tres_run_secs,
+-			    &object_ptr->tres_cnt, buffer);
+-	safe_unpackdouble(&object_ptr->grp_used_wall, buffer);
+-	safe_unpackdouble(&object_ptr->norm_priority, buffer);
+-	safe_unpacklongdouble(&object_ptr->usage_raw, buffer);
+-	safe_unpacklongdouble_array(&object_ptr->usage_tres_raw,
+-				    &count, buffer);
++	if (rpc_version >= SLURM_16_05_PROTOCOL_VERSION) {
++		safe_unpack32(&object_ptr->grp_used_jobs, buffer);
++		safe_unpack32(&object_ptr->grp_used_submit_jobs, buffer);
++		safe_unpack64_array(&object_ptr->grp_used_tres,
++				    &object_ptr->tres_cnt, buffer);
++		safe_unpack64_array(&object_ptr->grp_used_tres_run_secs,
++				    &object_ptr->tres_cnt, buffer);
++		safe_unpackdouble(&object_ptr->grp_used_wall, buffer);
++		safe_unpackdouble(&object_ptr->norm_priority, buffer);
++		safe_unpacklongdouble(&object_ptr->usage_raw, buffer);
++		safe_unpacklongdouble_array(&object_ptr->usage_tres_raw,
++					    &count, buffer);
+ 
+-	safe_unpack32(&count, buffer);
+-	if (count != NO_VAL) {
+-		object_ptr->user_limit_list =
+-			list_create(slurmdb_destroy_used_limits);
+-		for (i = 0; i < count; i++) {
+-			if (slurmdb_unpack_used_limits(&used_limits,
+-						       object_ptr->tres_cnt,
+-						       rpc_version, buffer)
+-			    != SLURM_SUCCESS)
+-				goto unpack_error;
+-			list_append(object_ptr->user_limit_list, used_limits);
++		safe_unpack32(&count, buffer);
++		if (count != NO_VAL) {
++			object_ptr->user_limit_list =
++				list_create(slurmdb_destroy_used_limits);
++			for (i = 0; i < count; i++) {
++				if (slurmdb_unpack_used_limits(
++					    &used_limits,
++					    object_ptr->tres_cnt,
++					    rpc_version, buffer)
++				    != SLURM_SUCCESS)
++					goto unpack_error;
++				list_append(object_ptr->user_limit_list,
++					    used_limits);
++			}
++		}
++
++		safe_unpack32(&count, buffer);
++		if (count != NO_VAL) {
++			object_ptr->acct_limit_list =
++				list_create(slurmdb_destroy_used_limits);
++			for (i = 0; i < count; i++) {
++				if (slurmdb_unpack_used_limits(
++					    &used_limits,
++					    object_ptr->tres_cnt,
++					    rpc_version, buffer)
++				    != SLURM_SUCCESS)
++					goto unpack_error;
++				list_append(object_ptr->acct_limit_list,
++					    used_limits);
++			}
++		}
++	} else if (rpc_version >= SLURM_15_08_PROTOCOL_VERSION) {
++		safe_unpack32(&object_ptr->grp_used_jobs, buffer);
++		safe_unpack32(&object_ptr->grp_used_submit_jobs, buffer);
++		safe_unpack64_array(&object_ptr->grp_used_tres,
++				    &object_ptr->tres_cnt, buffer);
++		safe_unpack64_array(&object_ptr->grp_used_tres_run_secs,
++				    &object_ptr->tres_cnt, buffer);
++		safe_unpackdouble(&object_ptr->grp_used_wall, buffer);
++		safe_unpackdouble(&object_ptr->norm_priority, buffer);
++		safe_unpacklongdouble(&object_ptr->usage_raw, buffer);
++		safe_unpacklongdouble_array(&object_ptr->usage_tres_raw,
++					    &count, buffer);
++
++		safe_unpack32(&count, buffer);
++		if (count != NO_VAL) {
++			object_ptr->user_limit_list =
++				list_create(slurmdb_destroy_used_limits);
++			for (i = 0; i < count; i++) {
++				if (slurmdb_unpack_used_limits(
++					    &used_limits,
++					    object_ptr->tres_cnt,
++					    rpc_version, buffer)
++				    != SLURM_SUCCESS)
++					goto unpack_error;
++				list_append(object_ptr->user_limit_list,
++					    used_limits);
++			}
+ 		}
++	} else {
++		error("%s: version too old %u", __func__, rpc_version);
++		goto unpack_error;
+ 	}
+ 
+ 	return SLURM_SUCCESS;
+@@ -2408,28 +2697,59 @@ extern void slurmdb_pack_qos_rec_with_usage(void *in, uint16_t rpc_version,
+ 
+ 	slurmdb_pack_qos_rec(in, rpc_version, buffer);
+ 
+-	pack64_array(object->grp_tres_mins_ctld,
+-		     object->usage->tres_cnt, buffer);
+-	pack64_array(object->grp_tres_run_mins_ctld,
+-		     object->usage->tres_cnt, buffer);
+-	pack64_array(object->grp_tres_ctld,
+-		     object->usage->tres_cnt, buffer);
+-
+-	pack64_array(object->max_tres_mins_pj_ctld,
+-		     object->usage->tres_cnt, buffer);
+-	pack64_array(object->max_tres_run_mins_pu_ctld,
+-		     object->usage->tres_cnt, buffer);
+-	pack64_array(object->max_tres_pj_ctld,
+-		     object->usage->tres_cnt, buffer);
+-	pack64_array(object->max_tres_pn_ctld,
+-		     object->usage->tres_cnt, buffer);
+-	pack64_array(object->max_tres_pu_ctld,
+-		     object->usage->tres_cnt, buffer);
+-	pack64_array(object->min_tres_pj_ctld,
+-		     object->usage->tres_cnt, buffer);
++	if (rpc_version >= SLURM_16_05_PROTOCOL_VERSION) {
++		pack64_array(object->grp_tres_mins_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->grp_tres_run_mins_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->grp_tres_ctld,
++			     object->usage->tres_cnt, buffer);
++
++		pack64_array(object->max_tres_mins_pj_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->max_tres_run_mins_pa_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->max_tres_run_mins_pu_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->max_tres_pa_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->max_tres_pj_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->max_tres_pn_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->max_tres_pu_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->min_tres_pj_ctld,
++			     object->usage->tres_cnt, buffer);
++	} else if (rpc_version >= SLURM_15_08_PROTOCOL_VERSION) {
++		pack64_array(object->grp_tres_mins_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->grp_tres_run_mins_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->grp_tres_ctld,
++			     object->usage->tres_cnt, buffer);
++
++		pack64_array(object->max_tres_mins_pj_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->max_tres_run_mins_pu_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->max_tres_pj_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->max_tres_pn_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->max_tres_pu_ctld,
++			     object->usage->tres_cnt, buffer);
++		pack64_array(object->min_tres_pj_ctld,
++			     object->usage->tres_cnt, buffer);
++
++	} else {
++		error("%s: version too old %u", __func__, rpc_version);
++		return;
++	}
+ 
+ 	slurmdb_pack_qos_usage(object->usage,
+ 			       rpc_version, buffer);
++
+ }
+ 
+ extern int slurmdb_unpack_qos_rec_with_usage(void **object,
+@@ -2446,25 +2766,54 @@ extern int slurmdb_unpack_qos_rec_with_usage(void **object,
+ 
+ 	object_ptr = *object;
+ 
+-	safe_unpack64_array(&object_ptr->grp_tres_mins_ctld,
+-			    &uint32_tmp, buffer);
+-	safe_unpack64_array(&object_ptr->grp_tres_run_mins_ctld,
+-			    &uint32_tmp, buffer);
+-	safe_unpack64_array(&object_ptr->grp_tres_ctld,
+-			    &uint32_tmp, buffer);
+-
+-	safe_unpack64_array(&object_ptr->max_tres_mins_pj_ctld,
+-			    &uint32_tmp, buffer);
+-	safe_unpack64_array(&object_ptr->max_tres_run_mins_pu_ctld,
+-			    &uint32_tmp, buffer);
+-	safe_unpack64_array(&object_ptr->max_tres_pj_ctld,
+-			    &uint32_tmp, buffer);
+-	safe_unpack64_array(&object_ptr->max_tres_pn_ctld,
+-			    &uint32_tmp, buffer);
+-	safe_unpack64_array(&object_ptr->max_tres_pu_ctld,
+-			    &uint32_tmp, buffer);
+-	safe_unpack64_array(&object_ptr->min_tres_pj_ctld,
+-			    &uint32_tmp, buffer);
++	if (rpc_version >= SLURM_16_05_PROTOCOL_VERSION) {
++		safe_unpack64_array(&object_ptr->grp_tres_mins_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->grp_tres_run_mins_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->grp_tres_ctld,
++				    &uint32_tmp, buffer);
++
++		safe_unpack64_array(&object_ptr->max_tres_mins_pj_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->max_tres_run_mins_pa_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->max_tres_run_mins_pu_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->max_tres_pa_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->max_tres_pj_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->max_tres_pn_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->max_tres_pu_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->min_tres_pj_ctld,
++				    &uint32_tmp, buffer);
++	} else if (rpc_version >= SLURM_15_08_PROTOCOL_VERSION) {
++		safe_unpack64_array(&object_ptr->grp_tres_mins_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->grp_tres_run_mins_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->grp_tres_ctld,
++				    &uint32_tmp, buffer);
++
++		safe_unpack64_array(&object_ptr->max_tres_mins_pj_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->max_tres_run_mins_pu_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->max_tres_pj_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->max_tres_pn_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->max_tres_pu_ctld,
++				    &uint32_tmp, buffer);
++		safe_unpack64_array(&object_ptr->min_tres_pj_ctld,
++				    &uint32_tmp, buffer);
++	} else {
++		error("%s: version too old %u", __func__, rpc_version);
++		goto unpack_error;
++	}
+ 
+ 	rc = slurmdb_unpack_qos_usage((void **)&object_ptr->usage,
+ 				      rpc_version, buffer);
+diff --git a/src/plugins/accounting_storage/mysql/accounting_storage_mysql.c b/src/plugins/accounting_storage/mysql/accounting_storage_mysql.c
+index d5660d6..e63507a 100644
+--- a/src/plugins/accounting_storage/mysql/accounting_storage_mysql.c
++++ b/src/plugins/accounting_storage/mysql/accounting_storage_mysql.c
+@@ -553,12 +553,16 @@ static int _as_mysql_acct_check_tables(mysql_conn_t *mysql_conn)
+ 		{ "description", "text" },
+ 		{ "flags", "int unsigned default 0" },
+ 		{ "grace_time", "int unsigned default NULL" },
++		{ "max_jobs_pa", "int default NULL" },
+ 		{ "max_jobs_per_user", "int default NULL" },
++		{ "max_submit_jobs_pa", "int default NULL" },
+ 		{ "max_submit_jobs_per_user", "int default NULL" },
++		{ "max_tres_pa", "text not null default ''" },
+ 		{ "max_tres_pj", "text not null default ''" },
+ 		{ "max_tres_pn", "text not null default ''" },
+ 		{ "max_tres_pu", "text not null default ''" },
+ 		{ "max_tres_mins_pj", "text not null default ''" },
++		{ "max_tres_run_mins_pa", "text not null default ''" },
+ 		{ "max_tres_run_mins_pu", "text not null default ''" },
+ 		{ "min_tres_pj", "text not null default ''" },
+ 		{ "max_wall_duration_per_job", "int default NULL" },
+@@ -2009,12 +2013,16 @@ extern int remove_common(mysql_conn_t *mysql_conn,
+ 			"update %s set "
+ 			"mod_time=%ld, deleted=1, "
+ 			"grace_time=DEFAULT, "
++			"max_jobs_pa=DEFAULT, "
+ 			"max_jobs_per_user=DEFAULT, "
++			"max_submit_jobs_pa=DEFAULT, "
+ 			"max_submit_jobs_per_user=DEFAULT, "
++			"max_tres_pa=DEFAULT, "
+ 			"max_tres_pj=DEFAULT, "
+ 			"max_tres_pn=DEFAULT, "
+ 			"max_tres_pu=DEFAULT, "
+ 			"max_tres_mins_pj=DEFAULT, "
++			"max_tres_run_mins_pa=DEFAULT, "
+ 			"max_tres_run_mins_pu=DEFAULT, "
+ 			"min_tres_pj=DEFAULT, "
+ 			"max_wall_duration_per_job=DEFAULT, "
+diff --git a/src/plugins/accounting_storage/mysql/as_mysql_qos.c b/src/plugins/accounting_storage/mysql/as_mysql_qos.c
+index 28867ff..25b4f2e 100644
+--- a/src/plugins/accounting_storage/mysql/as_mysql_qos.c
++++ b/src/plugins/accounting_storage/mysql/as_mysql_qos.c
+@@ -47,7 +47,9 @@ static char *mqos_req_inx[] = {
+ 	"grp_tres_run_mins",
+ 	"grp_tres",
+ 	"max_tres_mins_pj",
++	"max_tres_run_mins_pa",
+ 	"max_tres_run_mins_pu",
++	"max_tres_pa",
+ 	"max_tres_pj",
+ 	"max_tres_pn",
+ 	"max_tres_pu",
+@@ -62,7 +64,9 @@ enum {
+ 	MQOS_GTRM,
+ 	MQOS_GT,
+ 	MQOS_MTMPJ,
++	MQOS_MTRMA,
+ 	MQOS_MTRM,
++	MQOS_MTPA,
+ 	MQOS_MTPJ,
+ 	MQOS_MTPN,
+ 	MQOS_MTPU,
+@@ -136,8 +140,12 @@ static int _setup_qos_limits(slurmdb_qos_rec_t *qos,
+ 			qos->grp_submit_jobs = INFINITE;
+ 		if (qos->grp_wall == NO_VAL)
+ 			qos->grp_wall = INFINITE;
++		if (qos->max_jobs_pa == NO_VAL)
++			qos->max_jobs_pa = INFINITE;
+ 		if (qos->max_jobs_pu == NO_VAL)
+ 			qos->max_jobs_pu = INFINITE;
++		if (qos->max_submit_jobs_pa == NO_VAL)
++			qos->max_submit_jobs_pa = INFINITE;
+ 		if (qos->max_submit_jobs_pu == NO_VAL)
+ 			qos->max_submit_jobs_pu = INFINITE;
+ 		if (qos->max_wall_pj == NO_VAL)
+@@ -225,6 +233,17 @@ static int _setup_qos_limits(slurmdb_qos_rec_t *qos,
+ 		xstrfmtcat(*extra, ", grp_wall=%u", qos->grp_wall);
+ 	}
+ 
++	if (qos->max_jobs_pa == INFINITE) {
++		xstrcat(*cols, ", max_jobs_pa");
++		xstrcat(*vals, ", NULL");
++		xstrcat(*extra, ", max_jobs_pa=NULL");
++	} else if ((qos->max_jobs_pa != NO_VAL)
++		   && ((int32_t)qos->max_jobs_pa >= 0)) {
++		xstrcat(*cols, ", max_jobs_pa");
++		xstrfmtcat(*vals, ", %u", qos->max_jobs_pa);
++		xstrfmtcat(*extra, ", max_jobs_pa=%u", qos->max_jobs_pa);
++	}
++
+ 	if (qos->max_jobs_pu == INFINITE) {
+ 		xstrcat(*cols, ", max_jobs_per_user");
+ 		xstrcat(*vals, ", NULL");
+@@ -236,6 +255,18 @@ static int _setup_qos_limits(slurmdb_qos_rec_t *qos,
+ 		xstrfmtcat(*extra, ", max_jobs_per_user=%u", qos->max_jobs_pu);
+ 	}
+ 
++	if (qos->max_submit_jobs_pa == INFINITE) {
++		xstrcat(*cols, ", max_submit_jobs_pa");
++		xstrcat(*vals, ", NULL");
++		xstrcat(*extra, ", max_submit_jobs_pa=NULL");
++	} else if ((qos->max_submit_jobs_pa != NO_VAL)
++		   && ((int32_t)qos->max_submit_jobs_pa >= 0)) {
++		xstrcat(*cols, ", max_submit_jobs_pa");
++		xstrfmtcat(*vals, ", %u", qos->max_submit_jobs_pa);
++		xstrfmtcat(*extra, ", max_submit_jobs_pa=%u",
++			   qos->max_submit_jobs_pa);
++	}
++
+ 	if (qos->max_submit_jobs_pu == INFINITE) {
+ 		xstrcat(*cols, ", max_submit_jobs_per_user");
+ 		xstrcat(*vals, ", NULL");
+@@ -405,6 +436,18 @@ static int _setup_qos_limits(slurmdb_qos_rec_t *qos,
+ 			   qos->grp_tres_run_mins);
+ 	}
+ 
++	if (qos->max_tres_pa) {
++		if (!for_add) {
++			xstrcat(*extra, "");
++			goto end_modify;
++		}
++		xstrcat(*cols, ", max_tres_pa");
++		slurmdb_combine_tres_strings(
++			&qos->max_tres_pa, NULL, tres_str_flags);
++		xstrfmtcat(*vals, ", '%s'", qos->max_tres_pa);
++		xstrfmtcat(*extra, ", max_tres_pa='%s'", qos->max_tres_pa);
++	}
++
+ 	if (qos->max_tres_pj) {
+ 		if (!for_add) {
+ 			xstrcat(*extra, "");
+@@ -454,6 +497,19 @@ static int _setup_qos_limits(slurmdb_qos_rec_t *qos,
+ 			   qos->max_tres_mins_pj);
+ 	}
+ 
++	if (qos->max_tres_run_mins_pa) {
++		if (!for_add) {
++			xstrcat(*extra, "");
++			goto end_modify;
++		}
++		xstrcat(*cols, ", max_tres_run_mins_pa");
++		slurmdb_combine_tres_strings(
++			&qos->max_tres_run_mins_pa, NULL, tres_str_flags);
++		xstrfmtcat(*vals, ", '%s'", qos->max_tres_run_mins_pa);
++		xstrfmtcat(*extra, ", max_tres_run_mins_pa='%s'",
++			   qos->max_tres_run_mins_pa);
++	}
++
+ 	if (qos->max_tres_run_mins_pu) {
+ 		if (!for_add) {
+ 			xstrcat(*extra, "");
+@@ -761,6 +817,9 @@ extern List as_mysql_modify_qos(mysql_conn_t *mysql_conn, uint32_t uid,
+ 		qos_rec->grp_submit_jobs = qos->grp_submit_jobs;
+ 		qos_rec->grp_wall = qos->grp_wall;
+ 
++		mod_tres_str(&qos_rec->max_tres_pa,
++			     qos->max_tres_pa, row[MQOS_MTPA],
++			     NULL, "max_tres_pa", &vals, qos_rec->id, 0);
+ 		mod_tres_str(&qos_rec->max_tres_pj,
+ 			     qos->max_tres_pj, row[MQOS_MTPJ],
+ 			     NULL, "max_tres_pj", &vals, qos_rec->id, 0);
+@@ -773,12 +832,18 @@ extern List as_mysql_modify_qos(mysql_conn_t *mysql_conn, uint32_t uid,
+ 		mod_tres_str(&qos_rec->max_tres_mins_pj,
+ 			     qos->max_tres_mins_pj, row[MQOS_MTMPJ],
+ 			     NULL, "max_tres_mins_pj", &vals, qos_rec->id, 0);
++		mod_tres_str(&qos_rec->max_tres_run_mins_pa,
++			     qos->max_tres_run_mins_pa, row[MQOS_MTRM],
++			     NULL, "max_tres_run_mins_pa", &vals,
++			     qos_rec->id, 0);
+ 		mod_tres_str(&qos_rec->max_tres_run_mins_pu,
+ 			     qos->max_tres_run_mins_pu, row[MQOS_MTRM],
+ 			     NULL, "max_tres_run_mins_pu", &vals,
+ 			     qos_rec->id, 0);
+ 
++		qos_rec->max_jobs_pa  = qos->max_jobs_pa;
+ 		qos_rec->max_jobs_pu  = qos->max_jobs_pu;
++		qos_rec->max_submit_jobs_pa  = qos->max_submit_jobs_pa;
+ 		qos_rec->max_submit_jobs_pu  = qos->max_submit_jobs_pu;
+ 		qos_rec->max_wall_pj = qos->max_wall_pj;
+ 
+@@ -1076,11 +1141,15 @@ extern List as_mysql_get_qos(mysql_conn_t *mysql_conn, uid_t uid,
+ 		"grp_submit_jobs",
+ 		"grp_wall",
+ 		"max_tres_mins_pj",
++		"max_tres_run_mins_pa",
+ 		"max_tres_run_mins_pu",
++		"max_tres_pa",
+ 		"max_tres_pj",
+ 		"max_tres_pn",
+ 		"max_tres_pu",
++		"max_jobs_pa",
+ 		"max_jobs_per_user",
++		"max_submit_jobs_pa",
+ 		"max_submit_jobs_per_user",
+ 		"max_wall_duration_per_job",
+ 		"substr(preempt, 1, length(preempt) - 1)",
+@@ -1103,11 +1172,15 @@ extern List as_mysql_get_qos(mysql_conn_t *mysql_conn, uid_t uid,
+ 		QOS_REQ_GSJ,
+ 		QOS_REQ_GW,
+ 		QOS_REQ_MTMPJ,
++		QOS_REQ_MTRMA,
+ 		QOS_REQ_MTRM,
++		QOS_REQ_MTPA,
+ 		QOS_REQ_MTPJ,
+ 		QOS_REQ_MTPN,
+ 		QOS_REQ_MTPU,
++		QOS_REQ_MJPA,
+ 		QOS_REQ_MJPU,
++		QOS_REQ_MSJPA,
+ 		QOS_REQ_MSJPU,
+ 		QOS_REQ_MWPJ,
+ 		QOS_REQ_PREE,
+@@ -1242,16 +1315,31 @@ empty:
+ 		else
+ 			qos->grp_wall = INFINITE;
+ 
++		if (row[QOS_REQ_MJPA])
++			qos->max_jobs_pa = slurm_atoul(row[QOS_REQ_MJPA]);
++		else
++			qos->max_jobs_pa = INFINITE;
++
+ 		if (row[QOS_REQ_MJPU])
+ 			qos->max_jobs_pu = slurm_atoul(row[QOS_REQ_MJPU]);
+ 		else
+ 			qos->max_jobs_pu = INFINITE;
++
++		if (row[QOS_REQ_MSJPA])
++			qos->max_submit_jobs_pa =
++				slurm_atoul(row[QOS_REQ_MSJPA]);
++		else
++			qos->max_submit_jobs_pa = INFINITE;
++
+ 		if (row[QOS_REQ_MSJPU])
+ 			qos->max_submit_jobs_pu =
+ 				slurm_atoul(row[QOS_REQ_MSJPU]);
+ 		else
+ 			qos->max_submit_jobs_pu = INFINITE;
+ 
++		if (row[QOS_REQ_MTPA][0])
++			qos->max_tres_pa = xstrdup(row[QOS_REQ_MTPA]);
++
+ 		if (row[QOS_REQ_MTPJ][0])
+ 			qos->max_tres_pj = xstrdup(row[QOS_REQ_MTPJ]);
+ 
+@@ -1264,6 +1352,9 @@ empty:
+ 		if (row[QOS_REQ_MTMPJ][0])
+ 			qos->max_tres_mins_pj = xstrdup(row[QOS_REQ_MTMPJ]);
+ 
++		if (row[QOS_REQ_MTRMA][0])
++			qos->max_tres_run_mins_pa = xstrdup(row[QOS_REQ_MTRMA]);
++
+ 		if (row[QOS_REQ_MTRM][0])
+ 			qos->max_tres_run_mins_pu = xstrdup(row[QOS_REQ_MTRM]);
+ 
+diff --git a/src/sacctmgr/common.c b/src/sacctmgr/common.c
+index dbce30b..33a23c3 100644
+--- a/src/sacctmgr/common.c
++++ b/src/sacctmgr/common.c
+@@ -426,6 +426,14 @@ static print_field_t *_get_print_field(char *object)
+ 		field->name = xstrdup("MaxTRESMins");
+ 		field->len = 13;
+ 		field->print_routine = sacctmgr_print_tres;
++	} else if (!strncasecmp("MaxTRESRunMinsPerAccount", object,
++				MAX(command_len, 18)) ||
++		   !strncasecmp("MaxTRESRunMinsPA", object,
++				MAX(command_len, 15))) {
++		field->type = PRINT_MAXTRMA;
++		field->name = xstrdup("MaxTRESRunMinsPA");
++		field->len = 15;
++		field->print_routine = sacctmgr_print_tres;
+ 	} else if (!strncasecmp("MaxTRESRunMinsPerUser", object,
+ 				MAX(command_len, 8)) ||
+ 		   !strncasecmp("MaxTRESRunMinsPU", object,
+@@ -434,6 +442,14 @@ static print_field_t *_get_print_field(char *object)
+ 		field->name = xstrdup("MaxTRESRunMinsPU");
+ 		field->len = 15;
+ 		field->print_routine = sacctmgr_print_tres;
++	} else if (!strncasecmp("MaxTRESPerAccount", object,
++				MAX(command_len, 11)) ||
++		   !strncasecmp("MaxTRESPA", object,
++				MAX(command_len, 9))) {
++		field->type = PRINT_MAXTA;
++		field->name = xstrdup("MaxTRESPA");
++		field->len = 13;
++		field->print_routine = sacctmgr_print_tres;
+ 	} else if (!strncasecmp("MaxTRESPerUser", object,
+ 				MAX(command_len, 11))) {
+ 		field->type = PRINT_MAXTU;
+@@ -445,6 +461,14 @@ static print_field_t *_get_print_field(char *object)
+ 		field->name = xstrdup("MaxJobs");
+ 		field->len = 7;
+ 		field->print_routine = print_fields_uint;
++	} else if (!strncasecmp("MaxJobsPerAccount", object,
++				MAX(command_len, 11)) ||
++		   !strncasecmp("MaxJobsPA", object,
++				MAX(command_len, 9))) {
++		field->type = PRINT_MAXJA;
++		field->name = xstrdup("MaxJobsPA");
++		field->len = 9;
++		field->print_routine = print_fields_uint;
+ 	} else if (!strncasecmp("MaxJobsPerUser", object,
+ 				MAX(command_len, 8)) ||
+ 		   !strncasecmp("MaxJobsPU", object,
+@@ -472,6 +496,14 @@ static print_field_t *_get_print_field(char *object)
+ 		field->name = xstrdup("MaxSubmit");
+ 		field->len = 9;
+ 		field->print_routine = print_fields_uint;
++	} else if (!strncasecmp("MaxSubmitJobsPerAccount", object,
++				MAX(command_len, 17)) ||
++		   !strncasecmp("MaxSubmitJobsPA", object,
++				MAX(command_len, 15))) {
++		field->type = PRINT_MAXSA;
++		field->name = xstrdup("MaxSubmitPA");
++		field->len = 11;
++		field->print_routine = print_fields_uint;
+ 	} else if (!strncasecmp("MaxSubmitJobsPerUser", object,
+ 				MAX(command_len, 10)) ||
+ 		   !strncasecmp("MaxSubmitJobsPU", object,
+@@ -1748,132 +1780,157 @@ extern void sacctmgr_print_qos_limits(slurmdb_qos_rec_t *qos)
+ 
+ 	if (qos->flags && (qos->flags != QOS_FLAG_NOTSET)) {
+ 		char *tmp_char = slurmdb_qos_flags_str(qos->flags);
+-		printf("  Flags          = %s\n", tmp_char);
++		printf("  Flags                    = %s\n", tmp_char);
+ 		xfree(tmp_char);
+ 	}
+ 
+ 	if (qos->grace_time == INFINITE)
+-		printf("  GraceTime      = NONE\n");
++		printf("  GraceTime                = NONE\n");
+ 	else if (qos->grace_time != NO_VAL)
+-		printf("  GraceTime      = %d\n", qos->grace_time);
++		printf("  GraceTime                = %d\n", qos->grace_time);
+ 
+ 	if (qos->grp_jobs == INFINITE)
+-		printf("  GrpJobs        = NONE\n");
++		printf("  GrpJobs                  = NONE\n");
+ 	else if (qos->grp_jobs != NO_VAL)
+-		printf("  GrpJobs        = %u\n", qos->grp_jobs);
++		printf("  GrpJobs                  = %u\n", qos->grp_jobs);
+ 
+ 	if (qos->grp_submit_jobs == INFINITE)
+-		printf("  GrpSubmitJobs  = NONE\n");
++		printf("  GrpSubmitJobs            = NONE\n");
+ 	else if (qos->grp_submit_jobs != NO_VAL)
+-		printf("  GrpSubmitJobs  = %u\n",
++		printf("  GrpSubmitJobs            = %u\n",
+ 		       qos->grp_submit_jobs);
+ 
+ 	if (qos->grp_tres) {
+ 		sacctmgr_initialize_g_tres_list();
+ 		tmp_char = slurmdb_make_tres_string_from_simple(
+ 			qos->grp_tres, g_tres_list);
+-		printf("  GrpTRES       = %s\n", tmp_char);
++		printf("  GrpTRES                  = %s\n", tmp_char);
+ 		xfree(tmp_char);
+ 	}
+ 	if (qos->grp_tres_mins) {
+ 		sacctmgr_initialize_g_tres_list();
+ 		tmp_char = slurmdb_make_tres_string_from_simple(
+ 			qos->grp_tres_mins, g_tres_list);
+-		printf("  GrpTRESMins   = %s\n", tmp_char);
++		printf("  GrpTRESMins              = %s\n", tmp_char);
+ 		xfree(tmp_char);
+ 	}
+ 	if (qos->grp_tres_run_mins) {
+ 		sacctmgr_initialize_g_tres_list();
+ 		tmp_char = slurmdb_make_tres_string_from_simple(
+ 			qos->grp_tres_run_mins, g_tres_list);
+-		printf("  GrpTRESRunMins= %s\n", tmp_char);
++		printf("  GrpTRESRunMins           = %s\n", tmp_char);
+ 		xfree(tmp_char);
+ 	}
+ 
+ 	if (qos->grp_wall == INFINITE)
+-		printf("  GrpWall        = NONE\n");
++		printf("  GrpWall                  = NONE\n");
+ 	else if (qos->grp_wall != NO_VAL) {
+ 		char time_buf[32];
+ 		mins2time_str((time_t) qos->grp_wall,
+ 			      time_buf, sizeof(time_buf));
+-		printf("  GrpWall        = %s\n", time_buf);
++		printf("  GrpWall                  = %s\n", time_buf);
+ 	}
+ 
++	if (qos->max_jobs_pa == INFINITE)
++		printf("  MaxJobsPerAccount        = NONE\n");
++	else if (qos->max_jobs_pa != NO_VAL)
++		printf("  MaxJobsPerAccount        = %u\n",
++		       qos->max_jobs_pa);
+ 	if (qos->max_jobs_pu == INFINITE)
+ 		printf("  MaxJobsPerUser = NONE\n");
+ 	else if (qos->max_jobs_pu != NO_VAL)
+ 		printf("  MaxJobsPerUser = %u\n",
+ 		       qos->max_jobs_pu);
+ 
++	if (qos->max_submit_jobs_pa == INFINITE)
++		printf("  MaxSubmitJobsPerAccount  = NONE\n");
++	else if (qos->max_submit_jobs_pa != NO_VAL)
++		printf("  MaxSubmitJobsPerAccount  = %u\n",
++		       qos->max_submit_jobs_pa);
++
+ 	if (qos->max_submit_jobs_pu == INFINITE)
+-		printf("  MaxSubmitJobs  = NONE\n");
++		printf("  MaxSubmitJobsPerUser     = NONE\n");
+ 	else if (qos->max_submit_jobs_pu != NO_VAL)
+-		printf("  MaxSubmitJobs  = %u\n",
++		printf("  MaxSubmitJobsPerUser     = %u\n",
+ 		       qos->max_submit_jobs_pu);
+ 
++	if (qos->max_tres_pa) {
++		sacctmgr_initialize_g_tres_list();
++		tmp_char = slurmdb_make_tres_string_from_simple(
++			qos->max_tres_pa, g_tres_list);
++		printf("  MaxTRESPerAccount        = %s\n", tmp_char);
++		xfree(tmp_char);
++	}
+ 	if (qos->max_tres_pj) {
+ 		sacctmgr_initialize_g_tres_list();
+ 		tmp_char = slurmdb_make_tres_string_from_simple(
+ 			qos->max_tres_pj, g_tres_list);
+-		printf("  MaxTRESPerJob = %s\n", tmp_char);
++		printf("  MaxTRESPerJob            = %s\n", tmp_char);
+ 		xfree(tmp_char);
+ 	}
+ 	if (qos->max_tres_pn) {
+ 		sacctmgr_initialize_g_tres_list();
+ 		tmp_char = slurmdb_make_tres_string_from_simple(
+ 			qos->max_tres_pn, g_tres_list);
+-		printf("  MaxTRESPerNode= %s\n", tmp_char);
++		printf("  MaxTRESPerNode           = %s\n", tmp_char);
+ 		xfree(tmp_char);
+ 	}
+ 	if (qos->max_tres_pu) {
+ 		sacctmgr_initialize_g_tres_list();
+ 		tmp_char = slurmdb_make_tres_string_from_simple(
+ 			qos->max_tres_pu, g_tres_list);
+-		printf("  MaxTRESPerUser= %s\n", tmp_char);
++		printf("  MaxTRESPerUser           = %s\n", tmp_char);
+ 		xfree(tmp_char);
+ 	}
+ 	if (qos->max_tres_mins_pj) {
+ 		sacctmgr_initialize_g_tres_list();
+ 		tmp_char = slurmdb_make_tres_string_from_simple(
+ 			qos->max_tres_mins_pj, g_tres_list);
+-		printf("  MaxTRESMins   = %s\n", tmp_char);
++		printf("  MaxTRESMins              = %s\n", tmp_char);
++		xfree(tmp_char);
++	}
++	if (qos->max_tres_run_mins_pa) {
++		sacctmgr_initialize_g_tres_list();
++		tmp_char = slurmdb_make_tres_string_from_simple(
++			qos->max_tres_run_mins_pa, g_tres_list);
++		printf("  MaxTRESRUNMinsPerAccount = %s\n", tmp_char);
+ 		xfree(tmp_char);
+ 	}
+ 	if (qos->max_tres_run_mins_pu) {
+ 		sacctmgr_initialize_g_tres_list();
+ 		tmp_char = slurmdb_make_tres_string_from_simple(
+ 			qos->max_tres_run_mins_pu, g_tres_list);
+-		printf("  MaxTRESRUNMins= %s\n", tmp_char);
++		printf("  MaxTRESRUNMinsPerUser    = %s\n", tmp_char);
+ 		xfree(tmp_char);
+ 	}
+ 
+ 	if (qos->max_wall_pj == INFINITE)
+-		printf("  MaxWall        = NONE\n");
++		printf("  MaxWall                  = NONE\n");
+ 	else if (qos->max_wall_pj != NO_VAL) {
+ 		char time_buf[32];
+ 		mins2time_str((time_t) qos->max_wall_pj,
+ 			      time_buf, sizeof(time_buf));
+-		printf("  MaxWall        = %s\n", time_buf);
++		printf("  MaxWall                  = %s\n", time_buf);
+ 	}
+ 
+ 	if (qos->preempt_list) {
+ 		char *temp_char = get_qos_complete_str(g_qos_list,
+ 						       qos->preempt_list);
+ 		if (temp_char) {
+-			printf("  Preempt        = %s\n", temp_char);
++			printf("  Preempt          = %s\n", temp_char);
+ 			xfree(temp_char);
+ 		}
+ 	}
+ 
+ 	if (qos->preempt_mode && (qos->preempt_mode != (uint16_t)NO_VAL)) {
+-		printf("  PreemptMode    = %s\n",
++		printf("  PreemptMode              = %s\n",
+ 		       preempt_mode_string(qos->preempt_mode));
+ 	}
+ 
+ 	if (qos->priority == INFINITE)
+-		printf("  Priority       = NONE\n");
++		printf("  Priority                 = NONE\n");
+ 	else if (qos->priority != NO_VAL)
+-		printf("  Priority       = %d\n", qos->priority);
++		printf("  Priority                 = %d\n", qos->priority);
+ 
+ }
+ 
+diff --git a/src/sacctmgr/qos_functions.c b/src/sacctmgr/qos_functions.c
+index 48da080..b718ce0 100644
+--- a/src/sacctmgr/qos_functions.c
++++ b/src/sacctmgr/qos_functions.c
+@@ -456,12 +456,19 @@ static int _set_rec(int *start, int argc, char *argv[],
+ 					tres_flags);
+ 				xfree(tmp_char);
+ 			}
++		} else if (!strncasecmp (argv[i], "MaxJobsPerAccount",
++					 MAX(command_len, 11)) ||
++			   !strncasecmp (argv[i], "MaxJobsPA",
++					 MAX(command_len, 9))) {
++			if (get_uint(argv[i]+end, &qos->max_jobs_pa,
++			    "MaxJobsPA") == SLURM_SUCCESS)
++				set = 1;
+ 		} else if (!strncasecmp (argv[i], "MaxJobsPerUser",
+ 					 MAX(command_len, 4)) ||
+ 			   !strncasecmp (argv[i], "MaxJobsPU",
+ 					 MAX(command_len, 4))) {
+ 			if (get_uint(argv[i]+end, &qos->max_jobs_pu,
+-			    "MaxJobs") == SLURM_SUCCESS)
++			    "MaxJobsPU") == SLURM_SUCCESS)
+ 				set = 1;
+ 		} else if (!strncasecmp (argv[i], "MaxNodesPerJob",
+ 					 MAX(command_len, 4))) {
+@@ -489,13 +496,34 @@ static int _set_rec(int *start, int argc, char *argv[],
+ 					tres_flags);
+ 				xfree(tmp_char);
+ 			}
++		} else if (!strncasecmp (argv[i], "MaxSubmitJobsPerAccount",
++					 MAX(command_len, 17)) ||
++			   !strncasecmp (argv[i], "MaxSubmitJobsPA",
++					 MAX(command_len, 15))) {
++			if (get_uint(argv[i]+end, &qos->max_submit_jobs_pa,
++			    "MaxSubmitJobsPA") == SLURM_SUCCESS)
++				set = 1;
+ 		} else if (!strncasecmp (argv[i], "MaxSubmitJobsPerUser",
+ 					 MAX(command_len, 4)) ||
+ 			   !strncasecmp (argv[i], "MaxSubmitJobsPU",
+ 					 MAX(command_len, 4))) {
+ 			if (get_uint(argv[i]+end, &qos->max_submit_jobs_pu,
+-			    "MaxSubmitJobs") == SLURM_SUCCESS)
++			    "MaxSubmitJobsPU") == SLURM_SUCCESS)
++				set = 1;
++		} else if (!strncasecmp(argv[i], "MaxTRESPerAccount",
++					MAX(command_len, 11)) ||
++			   !strncasecmp(argv[i], "MaxTRESPA",
++					MAX(command_len, 9))) {
++			sacctmgr_initialize_g_tres_list();
++
++			if ((tmp_char = slurmdb_format_tres_str(
++				     argv[i]+end, g_tres_list, 1))) {
++				slurmdb_combine_tres_strings(
++					&qos->max_tres_pa, tmp_char,
++					tres_flags);
+ 				set = 1;
++				xfree(tmp_char);
++			}
+ 		} else if (!strncasecmp(argv[i], "MaxTRESPerJob",
+ 					MAX(command_len, 7))) {
+ 			sacctmgr_initialize_g_tres_list();
+@@ -546,7 +574,19 @@ static int _set_rec(int *start, int argc, char *argv[],
+ 				set = 1;
+ 				xfree(tmp_char);
+ 			}
+-		} else if (!strncasecmp(argv[i], "MaxTRESRunMins",
++		} else if (!strncasecmp(argv[i], "MaxTRESRunMinsPA",
++					MAX(command_len, 16))) {
++			sacctmgr_initialize_g_tres_list();
++
++			if ((tmp_char = slurmdb_format_tres_str(
++				     argv[i]+end, g_tres_list, 1))) {
++				slurmdb_combine_tres_strings(
++					&qos->max_tres_run_mins_pa, tmp_char,
++					tres_flags);
++				set = 1;
++				xfree(tmp_char);
++			}
++		} else if (!strncasecmp(argv[i], "MaxTRESRunMinsPU",
+ 					MAX(command_len, 8))) {
+ 			sacctmgr_initialize_g_tres_list();
+ 
+@@ -1056,11 +1096,21 @@ extern int sacctmgr_list_qos(int argc, char *argv[])
+ 					field, qos->max_tres_run_mins_pu,
+ 					(curr_inx == field_count));
+ 				break;
++			case PRINT_MAXTRMA:
++				field->print_routine(
++					field, qos->max_tres_run_mins_pa,
++					(curr_inx == field_count));
++				break;
+ 			case PRINT_MAXT:
+ 				field->print_routine(
+ 					field, qos->max_tres_pj,
+ 					(curr_inx == field_count));
+ 				break;
++			case PRINT_MAXTA:
++				field->print_routine(
++					field, qos->max_tres_pa,
++					(curr_inx == field_count));
++				break;
+ 			case PRINT_MAXTN:
+ 				field->print_routine(
+ 					field, qos->max_tres_pn,
+@@ -1076,6 +1126,11 @@ extern int sacctmgr_list_qos(int argc, char *argv[])
+ 						     qos->max_jobs_pu,
+ 						     (curr_inx == field_count));
+ 				break;
++			case PRINT_MAXJA:
++				field->print_routine(field,
++						     qos->max_jobs_pa,
++						     (curr_inx == field_count));
++				break;
+ 			case PRINT_MAXN:
+ 				field->print_routine(
+ 					field,
+@@ -1095,6 +1150,11 @@ extern int sacctmgr_list_qos(int argc, char *argv[])
+ 						     qos->max_submit_jobs_pu,
+ 						     (curr_inx == field_count));
+ 				break;
++			case PRINT_MAXSA:
++				field->print_routine(field,
++						     qos->max_submit_jobs_pa,
++						     (curr_inx == field_count));
++				break;
+ 			case PRINT_MAXW:
+ 				field->print_routine(
+ 					field,
+diff --git a/src/sacctmgr/sacctmgr.h b/src/sacctmgr/sacctmgr.h
+index a75776b..e3f245a 100644
+--- a/src/sacctmgr/sacctmgr.h
++++ b/src/sacctmgr/sacctmgr.h
+@@ -122,13 +122,17 @@ typedef enum {
+ 	PRINT_MAXCU,
+ 	PRINT_MAXTM,
+ 	PRINT_MAXTRM,
++	PRINT_MAXTRMA,
+ 	PRINT_MAXT,
++	PRINT_MAXTA,
+ 	PRINT_MAXTN,
+ 	PRINT_MAXTU,
+ 	PRINT_MAXJ,
++	PRINT_MAXJA,
+ 	PRINT_MAXN,
+ 	PRINT_MAXNU,
+ 	PRINT_MAXS,
++	PRINT_MAXSA,
+ 	PRINT_MAXW,
+ 	PRINT_MINC,
+ 	PRINT_MINT,
+diff --git a/src/scontrol/info_assoc_mgr.c b/src/scontrol/info_assoc_mgr.c
+index ac842e6..bb1cf24 100644
+--- a/src/scontrol/info_assoc_mgr.c
++++ b/src/scontrol/info_assoc_mgr.c
+@@ -82,6 +82,81 @@ endit:
+ 	printf("%s", new_line_char);
+ }
+ 
++static int _print_used_acct_limit(slurmdb_used_limits_t *used_limit,
++				  slurmdb_qos_rec_t *qos_rec)
++{
++	char *new_line_char = one_liner ? " " : "\n        ";
++
++	printf("%s", one_liner ? " " : "      ");
++	printf("Account %s%s", used_limit->acct, new_line_char);
++
++	printf("MaxJobsPA=");
++	if (qos_rec->max_jobs_pa != INFINITE)
++		printf("%u", qos_rec->max_jobs_pa);
++	else
++		printf("N");
++	printf("(%u)%s", used_limit->jobs, new_line_char);
++
++	printf("MaxSubmitJobsPA=");
++	if (qos_rec->max_submit_jobs_pa != INFINITE)
++		printf("%u", qos_rec->max_submit_jobs_pa);
++	else
++		printf("N");
++	printf("(%u)%s", used_limit->submit_jobs, new_line_char);
++
++	_print_tres_line("MaxTRESPA",
++			 qos_rec->max_tres_pa_ctld,
++			 used_limit->tres, 0, 1);
++
++	/* MaxTRESRunMinsPA doesn't do anything yet, if/when it does
++	 * change the last param in the print_tres_line to 0. */
++
++	/* printf("%s", one_liner ? "" : "    "); */
++	/* _print_tres_line("MaxTRESRunMinsPA", */
++	/* 		 qos_rec->max_tres_run_mins_pa_ctld, */
++	/* 		 used_limit->tres_run_mins, 60, 1); */
++
++
++	return SLURM_SUCCESS;
++}
++
++static int _print_used_user_limit(slurmdb_used_limits_t *used_limit,
++				  slurmdb_qos_rec_t *qos_rec)
++{
++	char *new_line_char = one_liner ? " " : "\n        ";
++
++	printf("%s", one_liner ? " " : "      ");
++	printf("User %d%s", used_limit->uid, new_line_char);
++
++	printf("MaxJobsPU=");
++	if (qos_rec->max_jobs_pu != INFINITE)
++		printf("%u", qos_rec->max_jobs_pu);
++	else
++		printf("N");
++	printf("(%u)%s", used_limit->jobs, new_line_char);
++
++	printf("MaxSubmitJobsPU=");
++	if (qos_rec->max_submit_jobs_pu != INFINITE)
++		printf("%u", qos_rec->max_submit_jobs_pu);
++	else
++		printf("N");
++	printf("(%u)%s", used_limit->submit_jobs, new_line_char);
++
++	_print_tres_line("MaxTRESPU",
++			 qos_rec->max_tres_pu_ctld,
++			 used_limit->tres, 0, 1);
++
++	/* MaxTRESRunMinsPU doesn't do anything yet, if/when it does
++	 * change the last param in the print_tres_line to 0. */
++
++	/* printf("%s", one_liner ? "" : "    "); */
++	/* _print_tres_line("MaxTRESRunMinsPU", */
++	/* 		 qos_rec->max_tres_run_mins_pu_ctld, */
++	/* 		 used_limit->tres_run_mins, 60, 1); */
++
++	return SLURM_SUCCESS;
++}
++
+ static void _print_assoc_mgr_info(const char *name, assoc_mgr_info_msg_t *msg)
+ {
+ 	ListIterator itr;
+@@ -316,20 +391,6 @@ static void _print_assoc_mgr_info(const char *name, assoc_mgr_info_msg_t *msg)
+ 					 qos_rec->usage->
+ 					 grp_used_tres_run_secs, 60, 0);
+ 
+-			if (qos_rec->max_jobs_pu != INFINITE)
+-				printf("MaxJobsPU=%u(%u) ",
+-				       qos_rec->max_jobs_pu,
+-				       qos_rec->usage->grp_used_jobs);
+-			else
+-				printf("MaxJobs= ");
+-
+-			if (qos_rec->max_submit_jobs_pu != INFINITE)
+-				printf("MaxSubmitJobs=%u(%u) ",
+-				       qos_rec->max_submit_jobs_pu,
+-				       qos_rec->usage->grp_used_submit_jobs);
+-			else
+-				printf("MaxSubmitJobs= ");
+-
+ 			if (qos_rec->max_wall_pj != INFINITE)
+ 				printf("MaxWallPJ=%u",
+ 				       qos_rec->max_wall_pj);
+@@ -347,22 +408,41 @@ static void _print_assoc_mgr_info(const char *name, assoc_mgr_info_msg_t *msg)
+ 					 qos_rec->max_tres_pn_ctld,
+ 					 NULL, 0, 0);
+ 
+-			_print_tres_line("MaxTRESPU",
+-					 qos_rec->max_tres_pu_ctld,
+-					 NULL, 0, 0);
+-
+ 			_print_tres_line("MaxTRESMinsPJ",
+ 					 qos_rec->max_tres_mins_pj_ctld,
+ 					 NULL, 0, 0);
+ 
+ 			/* Doesn't do anything yet */
++			/* _print_tres_line("MaxTRESRunMinsPA", */
++			/* 		 qos_rec->max_tres_mins_pa_ctld, */
++			/* 		 NULL, 0); */
++
+ 			/* _print_tres_line("MaxTRESRunMinsPU", */
+ 			/* 		 qos_rec->max_tres_mins_pu_ctld, */
+ 			/* 		 NULL, 0); */
+ 
+ 			_print_tres_line("MinTRESPJ",
+ 					 qos_rec->min_tres_pj_ctld,
+-					 NULL, 0, 1);
++					 NULL, 0,
++					 (qos_rec->usage->acct_limit_list ||
++					  qos_rec->usage->user_limit_list) ?
++					 0 : 1);
++
++			if (qos_rec->usage->acct_limit_list) {
++				printf("Account Limits%s",
++				       one_liner ? "" : "\n");
++				list_for_each(qos_rec->usage->acct_limit_list,
++					      (ListForF)_print_used_acct_limit,
++					      qos_rec);
++			}
++			if (qos_rec->usage->user_limit_list) {
++				printf("%sUser Limits%s",
++				       one_liner ? "" : "    ",
++				       one_liner ? "" : "\n");
++				list_for_each(qos_rec->usage->user_limit_list,
++					      (ListForF)_print_used_user_limit,
++					      qos_rec);
++			}
+ 		}
+ 	}
+ }
+diff --git a/src/slurmctld/acct_policy.c b/src/slurmctld/acct_policy.c
+index 8313858..9ad12bd 100644
+--- a/src/slurmctld/acct_policy.c
++++ b/src/slurmctld/acct_policy.c
+@@ -84,6 +84,8 @@ static int _get_tres_state_reason(int tres_pos, int unk_reason)
+ 			return WAIT_QOS_MAX_CPU_PER_JOB;
+ 		case WAIT_QOS_MAX_UNK_PER_NODE:
+ 			return WAIT_QOS_MAX_CPU_PER_NODE;
++		case WAIT_QOS_MAX_UNK_PER_ACCT:
++			return WAIT_QOS_MAX_CPU_PER_ACCT;
+ 		case WAIT_QOS_MAX_UNK_PER_USER:
+ 			return WAIT_QOS_MAX_CPU_PER_USER;
+ 		case WAIT_QOS_MAX_UNK_MINS_PER_JOB:
+@@ -117,6 +119,8 @@ static int _get_tres_state_reason(int tres_pos, int unk_reason)
+ 			return WAIT_QOS_MAX_MEM_PER_JOB;
+ 		case WAIT_QOS_MAX_UNK_PER_NODE:
+ 			return WAIT_QOS_MAX_MEM_PER_NODE;
++		case WAIT_QOS_MAX_UNK_PER_ACCT:
++			return WAIT_QOS_MAX_MEM_PER_ACCT;
+ 		case WAIT_QOS_MAX_UNK_PER_USER:
+ 			return WAIT_QOS_MAX_MEM_PER_USER;
+ 		case WAIT_QOS_MAX_UNK_MINS_PER_JOB:
+@@ -150,6 +154,8 @@ static int _get_tres_state_reason(int tres_pos, int unk_reason)
+ 			return WAIT_QOS_MAX_ENERGY_PER_JOB;
+ 		case WAIT_QOS_MAX_UNK_PER_NODE:
+ 			return WAIT_QOS_MAX_ENERGY_PER_NODE;
++		case WAIT_QOS_MAX_UNK_PER_ACCT:
++			return WAIT_QOS_MAX_ENERGY_PER_ACCT;
+ 		case WAIT_QOS_MAX_UNK_PER_USER:
+ 			return WAIT_QOS_MAX_ENERGY_PER_USER;
+ 		case WAIT_QOS_MAX_UNK_MINS_PER_JOB:
+@@ -181,6 +187,8 @@ static int _get_tres_state_reason(int tres_pos, int unk_reason)
+ 			return WAIT_QOS_GRP_NODE_RUN_MIN;
+ 		case WAIT_QOS_MAX_UNK_PER_JOB:
+ 			return WAIT_QOS_MAX_NODE_PER_JOB;
++		case WAIT_QOS_MAX_UNK_PER_ACCT:
++			return WAIT_QOS_MAX_NODE_PER_ACCT;
+ 		case WAIT_QOS_MAX_UNK_PER_USER:
+ 			return WAIT_QOS_MAX_NODE_PER_USER;
+ 		case WAIT_QOS_MAX_UNK_MINS_PER_JOB:
+@@ -215,6 +223,8 @@ static int _get_tres_state_reason(int tres_pos, int unk_reason)
+ 				return WAIT_QOS_MAX_GRES_PER_JOB;
+ 			case WAIT_QOS_MAX_UNK_PER_NODE:
+ 				return WAIT_QOS_MAX_GRES_PER_NODE;
++			case WAIT_QOS_MAX_UNK_PER_ACCT:
++				return WAIT_QOS_MAX_GRES_PER_ACCT;
+ 			case WAIT_QOS_MAX_UNK_PER_USER:
+ 				return WAIT_QOS_MAX_GRES_PER_USER;
+ 			case WAIT_QOS_MAX_UNK_MINS_PER_JOB:
+@@ -246,6 +256,8 @@ static int _get_tres_state_reason(int tres_pos, int unk_reason)
+ 				return WAIT_QOS_GRP_LIC_RUN_MIN;
+ 			case WAIT_QOS_MAX_UNK_PER_JOB:
+ 				return WAIT_QOS_MAX_LIC_PER_JOB;
++			case WAIT_QOS_MAX_UNK_PER_ACCT:
++				return WAIT_QOS_MAX_LIC_PER_ACCT;
+ 			case WAIT_QOS_MAX_UNK_PER_USER:
+ 				return WAIT_QOS_MAX_LIC_PER_USER;
+ 			case WAIT_QOS_MAX_UNK_MINS_PER_JOB:
+@@ -278,6 +290,8 @@ static int _get_tres_state_reason(int tres_pos, int unk_reason)
+ 				return WAIT_QOS_MAX_BB_PER_JOB;
+ 			case WAIT_QOS_MAX_UNK_PER_NODE:
+ 				return WAIT_QOS_MAX_BB_PER_NODE;
++			case WAIT_QOS_MAX_UNK_PER_ACCT:
++				return WAIT_QOS_MAX_BB_PER_ACCT;
+ 			case WAIT_QOS_MAX_UNK_PER_USER:
+ 				return WAIT_QOS_MAX_BB_PER_USER;
+ 			case WAIT_QOS_MAX_UNK_MINS_PER_JOB:
+@@ -333,6 +347,17 @@ static void _set_qos_order(struct job_record *job_ptr,
+ 	return;
+ }
+ 
++static int _find_used_limits_for_acct(void *x, void *key)
++{
++	slurmdb_used_limits_t *used_limits = (slurmdb_used_limits_t *)x;
++	char *account = (char *)key;
++
++	if (!xstrcmp(account, used_limits->acct))
++		return 1;
++
++	return 0;
++}
++
+ static int _find_used_limits_for_user(void *x, void *key)
+ {
+ 	slurmdb_used_limits_t *used_limits = (slurmdb_used_limits_t *)x;
+@@ -379,12 +404,30 @@ static void _qos_adjust_limit_usage(int type, struct job_record *job_ptr,
+ 				    uint64_t *used_tres_run_secs,
+ 				    uint32_t job_cnt)
+ {
+-	slurmdb_used_limits_t *used_limits = NULL;
++	slurmdb_used_limits_t *used_limits = NULL, *used_limits_a = NULL;
++	slurmdb_assoc_rec_t *assoc_ptr = job_ptr->assoc_ptr;
+ 	int i;
+ 
+-	if (!qos_ptr)
++	if (!qos_ptr || !assoc_ptr)
+ 		return;
+ 
++	if (!qos_ptr->usage->acct_limit_list)
++		qos_ptr->usage->acct_limit_list =
++			list_create(slurmdb_destroy_used_limits);
++
++	if (!(used_limits_a = list_find_first(qos_ptr->usage->acct_limit_list,
++					    _find_used_limits_for_acct,
++					    assoc_ptr->acct))) {
++		used_limits_a = xmalloc(sizeof(slurmdb_used_limits_t));
++		used_limits_a->acct = xstrdup(assoc_ptr->acct);
++
++		i = sizeof(uint64_t) * slurmctld_tres_cnt;
++		used_limits_a->tres = xmalloc(i);
++		used_limits_a->tres_run_mins = xmalloc(i);
++
++		list_append(qos_ptr->usage->acct_limit_list, used_limits_a);
++	}
++
+ 	if (!qos_ptr->usage->user_limit_list)
+ 		qos_ptr->usage->user_limit_list =
+ 			list_create(slurmdb_destroy_used_limits);
+@@ -405,6 +448,7 @@ static void _qos_adjust_limit_usage(int type, struct job_record *job_ptr,
+ 	case ACCT_POLICY_ADD_SUBMIT:
+ 		qos_ptr->usage->grp_used_submit_jobs += job_cnt;
+ 		used_limits->submit_jobs += job_cnt;
++		used_limits_a->submit_jobs += job_cnt;
+ 		break;
+ 	case ACCT_POLICY_REM_SUBMIT:
+ 		if (qos_ptr->usage->grp_used_submit_jobs)
+@@ -421,11 +465,20 @@ static void _qos_adjust_limit_usage(int type, struct job_record *job_ptr,
+ 			       "used_submit_jobs underflow for "
+ 			       "qos %s user %d",
+ 			       qos_ptr->name, used_limits->uid);
++
++		if (used_limits_a->submit_jobs)
++			used_limits_a->submit_jobs -= job_cnt;
++		else
++			debug2("acct_policy_remove_job_submit: "
++			       "used_submit_jobs underflow for "
++			       "qos %s account %s",
++			       qos_ptr->name, used_limits_a->acct);
+ 		break;
+ 	case ACCT_POLICY_JOB_BEGIN:
+ 		qos_ptr->usage->grp_used_jobs++;
+ 		for (i=0; i<slurmctld_tres_cnt; i++) {
+ 			used_limits->tres[i] += job_ptr->tres_alloc_cnt[i];
++			used_limits_a->tres[i] += job_ptr->tres_alloc_cnt[i];
+ 
+ 			qos_ptr->usage->grp_used_tres[i] +=
+ 				job_ptr->tres_alloc_cnt[i];
+@@ -442,6 +495,7 @@ static void _qos_adjust_limit_usage(int type, struct job_record *job_ptr,
+ 		}
+ 
+ 		used_limits->jobs++;
++		used_limits_a->jobs++;
+ 		break;
+ 	case ACCT_POLICY_JOB_FINI:
+ 		qos_ptr->usage->grp_used_jobs--;
+@@ -474,15 +528,33 @@ static void _qos_adjust_limit_usage(int type, struct job_record *job_ptr,
+ 			} else
+ 				used_limits->tres[i] -=
+ 					job_ptr->tres_alloc_cnt[i];
++
++			if (job_ptr->tres_alloc_cnt[i] >
++			    used_limits_a->tres[i]) {
++				used_limits_a->tres[i] = 0;
++				debug2("acct_policy_job_fini: "
++				       "used_limits->tres(%s) "
++				       "underflow for qos %s account %s",
++				       assoc_mgr_tres_name_array[i],
++				       qos_ptr->name, used_limits_a->acct);
++			} else
++				used_limits_a->tres[i] -=
++					job_ptr->tres_alloc_cnt[i];
+ 		}
+ 
+-		used_limits->jobs--;
+-		if ((int32_t)used_limits->jobs < 0) {
+-			used_limits->jobs = 0;
++		if (used_limits->jobs)
++			used_limits->jobs--;
++		else
+ 			debug2("acct_policy_job_fini: used_jobs "
+ 			       "underflow for qos %s user %d",
+ 			       qos_ptr->name, used_limits->uid);
+-		}
++
++		if (used_limits_a->jobs)
++			used_limits_a->jobs--;
++		else
++			debug2("acct_policy_job_fini: used_jobs "
++			       "underflow for qos %s account %s",
++			       qos_ptr->name, used_limits_a->acct);
+ 
+ 		break;
+ 	default:
+@@ -963,6 +1035,7 @@ static int _validate_tres_usage_limits_for_qos(
+ }
+ 
+ static int _qos_policy_validate(job_desc_msg_t *job_desc,
++				slurmdb_assoc_rec_t *assoc_ptr,
+ 				struct part_record *part_ptr,
+ 				slurmdb_qos_rec_t *qos_ptr,
+ 				slurmdb_qos_rec_t *qos_out_ptr,
+@@ -985,6 +1058,34 @@ static int _qos_policy_validate(job_desc_msg_t *job_desc,
+ 
+ 	if (!_validate_tres_limits_for_qos(&tres_pos,
+ 					   job_desc->tres_req_cnt, 0,
++					   NULL,
++					   qos_ptr->max_tres_pa_ctld,
++					   NULL,
++					   qos_out_ptr->max_tres_pa_ctld,
++					   acct_policy_limit_set->tres,
++					   strict_checking, 1)) {
++		if (job_desc->tres_req_cnt[tres_pos] >
++		    qos_ptr->max_tres_pa_ctld[tres_pos]) {
++			if (reason)
++				*reason = _get_tres_state_reason(
++					tres_pos, WAIT_QOS_MAX_UNK_PER_ACCT);
++
++			debug2("job submit for user %s(%u): "
++			       "min tres(%s) request %"PRIu64" exceeds "
++			       "per-acct max tres limit %"PRIu64" for qos '%s'",
++			       user_name,
++			       job_desc->user_id,
++			       assoc_mgr_tres_name_array[tres_pos],
++			       job_desc->tres_req_cnt[tres_pos],
++			       qos_ptr->max_tres_pa_ctld[tres_pos],
++			       qos_ptr->name);
++			rc = false;
++			goto end_it;
++		}
++	}
++
++	if (!_validate_tres_limits_for_qos(&tres_pos,
++					   job_desc->tres_req_cnt, 0,
+ 					   qos_ptr->grp_tres_ctld,
+ 					   qos_ptr->max_tres_pu_ctld,
+ 					   qos_out_ptr->grp_tres_ctld,
+@@ -1190,6 +1291,34 @@ static int _qos_policy_validate(job_desc_msg_t *job_desc,
+ 	 * qos_ptr->max_jobs.
+ 	 */
+ 
++	if ((qos_out_ptr->max_submit_jobs_pa == INFINITE) &&
++	    (qos_ptr->max_submit_jobs_pa != INFINITE)) {
++		slurmdb_used_limits_t *used_limits = NULL;
++
++		if (qos_ptr->usage->user_limit_list)
++			used_limits = list_find_first(
++				qos_ptr->usage->acct_limit_list,
++				_find_used_limits_for_acct,
++				assoc_ptr->acct);
++
++		qos_out_ptr->max_submit_jobs_pa = qos_ptr->max_submit_jobs_pa;
++
++		if ((!used_limits &&
++		     qos_ptr->max_submit_jobs_pa == 0) ||
++		    (used_limits &&
++		     ((used_limits->submit_jobs + job_cnt) >
++		      qos_ptr->max_submit_jobs_pa))) {
++			if (reason)
++				*reason = WAIT_QOS_MAX_SUB_JOB_PER_ACCT;
++			debug2("job submit for account %s: "
++			       "qos max submit job limit exceeded %u",
++			       assoc_ptr->acct,
++			       qos_ptr->max_submit_jobs_pa);
++			rc = false;
++			goto end_it;
++		}
++	}
++
+ 	if ((qos_out_ptr->max_submit_jobs_pu == INFINITE) &&
+ 	    (qos_ptr->max_submit_jobs_pu != INFINITE)) {
+ 		slurmdb_used_limits_t *used_limits = NULL;
+@@ -1249,17 +1378,18 @@ end_it:
+ }
+ 
+ static int _qos_job_runnable_pre_select(struct job_record *job_ptr,
+-					 slurmdb_qos_rec_t *qos_ptr,
+-					 slurmdb_qos_rec_t *qos_out_ptr)
++					slurmdb_qos_rec_t *qos_ptr,
++					slurmdb_qos_rec_t *qos_out_ptr)
+ {
+ 	uint32_t wall_mins;
+ 	uint32_t time_limit = NO_VAL;
+ 	int rc = true;
+-	slurmdb_used_limits_t *used_limits = NULL;
+-	bool free_used_limits = false;
++	slurmdb_used_limits_t *used_limits = NULL, *used_limits_a = NULL;
++	bool free_used_limits = false, free_used_limits_a = false;
+ 	bool safe_limits = false;
++	slurmdb_assoc_rec_t *assoc_ptr = job_ptr->assoc_ptr;
+ 
+-	if (!qos_ptr || !qos_out_ptr)
++	if (!qos_ptr || !qos_out_ptr || !assoc_ptr)
+ 		return rc;
+ 
+ 	/* check to see if we should be using safe limits, if so we
+@@ -1271,6 +1401,20 @@ static int _qos_job_runnable_pre_select(struct job_record *job_ptr,
+ 	wall_mins = qos_ptr->usage->grp_used_wall / 60;
+ 
+ 	/*
++	 * Try to get the used limits for the account or initialise a local
++	 * nullified one if not available.
++	 */
++	if (!qos_ptr->usage->acct_limit_list ||
++	    !(used_limits_a = list_find_first(qos_ptr->usage->acct_limit_list,
++					      _find_used_limits_for_acct,
++					      assoc_ptr->acct))) {
++		used_limits_a = xmalloc(sizeof(slurmdb_used_limits_t));
++		used_limits_a->acct = assoc_ptr->acct; /* Just point to
++							  it, don't copy. */
++		free_used_limits_a = true;
++	}
++
++	/*
+ 	 * Try to get the used limits for the user or initialise a local
+ 	 * nullified one if not available.
+ 	 */
+@@ -1364,8 +1508,32 @@ static int _qos_job_runnable_pre_select(struct job_record *job_ptr,
+ 
+ 	/* we don't need to check min_tres_pj here */
+ 
++	/* we don't need to check max_tres_pa here */
++
+ 	/* we don't need to check max_tres_pu here */
+ 
++	if ((qos_out_ptr->max_jobs_pa == INFINITE)
++	    && (qos_ptr->max_jobs_pa != INFINITE)) {
++
++		qos_out_ptr->max_jobs_pa = qos_ptr->max_jobs_pa;
++
++		if (used_limits_a->jobs >= qos_ptr->max_jobs_pa) {
++			xfree(job_ptr->state_desc);
++			job_ptr->state_reason =
++				WAIT_QOS_MAX_JOB_PER_ACCT;
++			debug2("job %u being held, "
++			       "the job is at or exceeds "
++			       "max jobs per-acct (%s) limit "
++			       "%u with %u for QOS %s",
++			       job_ptr->job_id,
++			       used_limits_a->acct,
++			       qos_ptr->max_jobs_pa,
++			       used_limits_a->jobs, qos_ptr->name);
++			rc = false;
++			goto end_it;
++		}
++	}
++
+ 	if ((qos_out_ptr->max_jobs_pu == INFINITE)
+ 	    && (qos_ptr->max_jobs_pu != INFINITE)) {
+ 
+@@ -1387,6 +1555,8 @@ static int _qos_job_runnable_pre_select(struct job_record *job_ptr,
+ 		}
+ 	}
+ 
++	/* we don't need to check submit_jobs_pa here */
++
+ 	/* we don't need to check submit_jobs_pu here */
+ 
+ 	/* if the qos limits have changed since job
+@@ -1423,6 +1593,9 @@ end_it:
+ 	if (free_used_limits)
+ 		xfree(used_limits);
+ 
++	if (free_used_limits_a)
++		xfree(used_limits_a);
++
+ 	return rc;
+ }
+ 
+@@ -1434,13 +1607,14 @@ static int _qos_job_runnable_post_select(struct job_record *job_ptr,
+ {
+ 	uint64_t tres_usage_mins[slurmctld_tres_cnt];
+ 	uint64_t tres_run_mins[slurmctld_tres_cnt];
+-	slurmdb_used_limits_t *used_limits = NULL;
+-	bool free_used_limits = false;
++	slurmdb_used_limits_t *used_limits = NULL, *used_limits_a = NULL;
++	bool free_used_limits = false, free_used_limits_a = false;
+ 	bool safe_limits = false;
+ 	int rc = true;
+ 	int i, tres_pos = 0;
++	slurmdb_assoc_rec_t *assoc_ptr = job_ptr->assoc_ptr;
+ 
+-	if (!qos_ptr || !qos_out_ptr)
++	if (!qos_ptr || !qos_out_ptr || !assoc_ptr)
+ 		return rc;
+ 
+ 	/* check to see if we should be using safe limits, if so we
+@@ -1460,6 +1634,21 @@ static int _qos_job_runnable_post_select(struct job_record *job_ptr,
+ 	}
+ 
+ 	/*
++	 * Try to get the used limits for the account or initialise a local
++	 * nullified one if not available.
++	 */
++	if (!qos_ptr->usage->acct_limit_list ||
++	    !(used_limits_a = list_find_first(qos_ptr->usage->acct_limit_list,
++					      _find_used_limits_for_acct,
++					      assoc_ptr->acct))) {
++		used_limits_a = xmalloc(sizeof(slurmdb_used_limits_t));
++		used_limits_a->acct = assoc_ptr->acct; /* Just point to
++							  it, don't copy. */
++		free_used_limits_a = true;
++	}
++
++
++	/*
+ 	 * Try to get the used limits for the user or initialize a local
+ 	 * nullified one if not available.
+ 	 */
+@@ -1750,6 +1939,61 @@ static int _qos_job_runnable_post_select(struct job_record *job_ptr,
+ 
+ 	i = _validate_tres_usage_limits_for_qos(
+ 		&tres_pos,
++		qos_ptr->max_tres_pa_ctld, qos_out_ptr->max_tres_pa_ctld,
++		tres_req_cnt, used_limits_a->tres,
++		NULL, job_ptr->limit_set.tres, 1);
++	switch (i) {
++	case 1:
++		/* not possible because the curr_usage sent in is NULL */
++		break;
++	case 2:
++		/* Hold the job if it exceeds the per-acct
++		 * TRES limit for the given QOS
++		 */
++		xfree(job_ptr->state_desc);
++		job_ptr->state_reason = _get_tres_state_reason(
++			tres_pos, WAIT_QOS_MAX_UNK_PER_ACCT);
++		debug2("job %u is being held, "
++		       "QOS %s min tres(%s) "
++		       "request %"PRIu64" exceeds "
++		       "max tres per account (%s) limit %"PRIu64,
++		       job_ptr->job_id,
++		       qos_ptr->name,
++		       assoc_mgr_tres_name_array[tres_pos],
++		       tres_req_cnt[tres_pos],
++		       used_limits_a->acct,
++		       qos_ptr->max_tres_pa_ctld[tres_pos]);
++		rc = false;
++		goto end_it;
++		break;
++	case 3:
++		/* Hold the job if the user has exceeded
++		 * the QOS per-user TRES limit with their
++		 * current usage */
++		xfree(job_ptr->state_desc);
++		job_ptr->state_reason = _get_tres_state_reason(
++			tres_pos, WAIT_QOS_MAX_UNK_PER_ACCT);
++		debug2("job %u being held, "
++		       "if allowed the job request will exceed "
++		       "QOS %s max tres(%s) per account (%s) limit "
++		       "%"PRIu64" with already used %"PRIu64" + "
++		       "requested %"PRIu64,
++		       job_ptr->job_id,
++		       qos_ptr->name,
++		       assoc_mgr_tres_name_array[tres_pos],
++		       used_limits_a->acct,
++		       qos_ptr->max_tres_pa_ctld[tres_pos],
++		       used_limits_a->tres[tres_pos],
++		       tres_req_cnt[tres_pos]);
++		rc = false;
++		goto end_it;
++	default:
++		/* all good */
++		break;
++	}
++
++	i = _validate_tres_usage_limits_for_qos(
++		&tres_pos,
+ 		qos_ptr->max_tres_pu_ctld, qos_out_ptr->max_tres_pu_ctld,
+ 		tres_req_cnt, used_limits->tres,
+ 		NULL, job_ptr->limit_set.tres, 1);
+@@ -1801,9 +2045,13 @@ static int _qos_job_runnable_post_select(struct job_record *job_ptr,
+ 		break;
+ 	}
+ 
++	/* We do not need to check max_jobs_pa here */
++
+ 	/* We do not need to check max_jobs_pu here */
+ 
+ end_it:
++	/* we don't need to check submit_jobs_pa here */
++
+ 	/* we don't need to check submit_jobs_pu here */
+ 
+ 	/* we don't need to check max_wall_pj here */
+@@ -1811,6 +2059,9 @@ end_it:
+ 	if (free_used_limits)
+ 		xfree(used_limits);
+ 
++	if (free_used_limits_a)
++		xfree(used_limits_a);
++
+ 	return rc;
+ }
+ 
+@@ -2079,12 +2330,14 @@ extern bool acct_policy_validate(job_desc_msg_t *job_desc,
+ 				qos_ptr_2->flags & QOS_FLAG_DENY_LIMIT;
+ 
+ 		if (!(rc = _qos_policy_validate(
+-			      job_desc, part_ptr, qos_ptr_1, &qos_rec,
++			      job_desc, assoc_ptr, part_ptr,
++			      qos_ptr_1, &qos_rec,
+ 			      reason, acct_policy_limit_set, update_call,
+ 			      user_name, job_cnt, strict_checking)))
+ 			goto end_it;
+ 		if (!(rc = _qos_policy_validate(
+-			      job_desc, part_ptr, qos_ptr_2, &qos_rec,
++			      job_desc, assoc_ptr,
++			      part_ptr, qos_ptr_2, &qos_rec,
+ 			      reason, acct_policy_limit_set, update_call,
+ 			      user_name, job_cnt, strict_checking)))
+ 			goto end_it;
+@@ -2217,7 +2470,8 @@ extern bool acct_policy_validate(job_desc_msg_t *job_desc,
+ 		 * assoc_ptr->max_jobs.
+ 		 */
+ 
+-		if ((qos_rec.max_submit_jobs_pu == INFINITE) &&
++		if ((qos_rec.max_submit_jobs_pa == INFINITE) &&
++		    (qos_rec.max_submit_jobs_pu == INFINITE) &&
+ 		    (assoc_ptr->max_submit_jobs != INFINITE) &&
+ 		    ((assoc_ptr->usage->used_submit_jobs + job_cnt)
+ 		     > assoc_ptr->max_submit_jobs)) {
+@@ -2457,7 +2711,8 @@ extern bool acct_policy_job_runnable_pre_select(struct job_record *job_ptr)
+ 
+ 		/* we don't need to check max_cpus_pj here */
+ 
+-		if ((qos_rec.max_jobs_pu == INFINITE) &&
++		if ((qos_rec.max_jobs_pa == INFINITE) &&
++		    (qos_rec.max_jobs_pu == INFINITE) &&
+ 		    (assoc_ptr->max_jobs != INFINITE) &&
+ 		    (assoc_ptr->usage->used_jobs >= assoc_ptr->max_jobs)) {
+ 			xfree(job_ptr->state_desc);
+@@ -2926,10 +3181,15 @@ extern uint32_t acct_policy_get_max_nodes(struct job_record *job_ptr,
+ 			qos_ptr_1->max_tres_pj_ctld[TRES_ARRAY_NODE];
+ 		uint64_t max_nodes_pu =
+ 			qos_ptr_1->max_tres_pu_ctld[TRES_ARRAY_NODE];
++		uint64_t max_nodes_pa =
++			qos_ptr_1->max_tres_pa_ctld[TRES_ARRAY_NODE];
+ 
+ 		grp_nodes = qos_ptr_1->grp_tres_ctld[TRES_ARRAY_NODE];
+ 
+ 		if (qos_ptr_2) {
++			if (max_nodes_pa == INFINITE64)
++				max_nodes_pa = qos_ptr_2->max_tres_pa_ctld[
++					TRES_ARRAY_NODE];
+ 			if (max_nodes_pj == INFINITE64)
+ 				max_nodes_pj = qos_ptr_2->max_tres_pj_ctld[
+ 					TRES_ARRAY_NODE];
+@@ -2941,10 +3201,17 @@ extern uint32_t acct_policy_get_max_nodes(struct job_record *job_ptr,
+ 					TRES_ARRAY_NODE];
+ 		}
+ 
+-		if (max_nodes_pj < max_nodes_pu) {
++		if (max_nodes_pa < max_nodes_limit) {
++			max_nodes_limit = max_nodes_pa;
++			*wait_reason = WAIT_QOS_MAX_NODE_PER_ACCT;
++		}
++
++		if (max_nodes_pj < max_nodes_limit) {
+ 			max_nodes_limit = max_nodes_pj;
+ 			*wait_reason = WAIT_QOS_MAX_NODE_PER_JOB;
+-		} else if (max_nodes_pu != INFINITE64) {
++		}
++
++		if (max_nodes_pu < max_nodes_limit) {
+ 			max_nodes_limit = max_nodes_pu;
+ 			*wait_reason = WAIT_QOS_MAX_NODE_PER_USER;
+ 		}
