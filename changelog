@@ -1,3 +1,9 @@
+slurm-llnl (15.08.7-2) unstable; urgency=medium
+
+  * Added first maxtresperaccount patch
+
+ -- Michael Gutteridge <mrg@fredhutch.org>  Mon, 25 Jan 2016 05:20:00 -0800
+
 slurm-llnl (15.08.7-1) unstable; urgency=medium
 
   * New upstream version (15.08.1->15.08.7)
