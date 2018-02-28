@@ -1,3 +1,0 @@
-version=3
-opts="uversionmangle=s/-1$//;s/\-/./g" \
-  https://github.com/SchedMD/slurm/tags .*/slurm-([\d-]*)\.tar\.gz
