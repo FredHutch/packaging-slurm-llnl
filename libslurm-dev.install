@@ -1,0 +1,7 @@
+usr/include/slurm-wlm/slurm_errno.h
+usr/include/slurm-wlm/slurm.h
+usr/include/slurm-wlm/smd_ns.h
+usr/include/slurm-wlm/spank.h
+usr/lib/*/libslurm.a
+usr/lib/*/libslurm.la
+usr/lib/*/libslurm.so
