@@ -1,3 +1,9 @@
+slurm-llnl (17.11.4-1fhcrc1) trusty; urgency=medium
+
+  * new upstream release
+
+ -- Michael Gutteridge <mrg@fredhutch.org>  Thu, 01 Mar 2018 10:11:58 -0800
+
 slurm-llnl (17.11.3-2fhcrc2) trusty; urgency=medium
 
   * lintian fixes
