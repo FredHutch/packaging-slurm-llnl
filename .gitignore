@@ -35,3 +35,6 @@ slurmdbd/
 sview/
 tmp/
 *.symbols
+libpmi2-0/
+libpmi2-0-dbg/
+libpmi2-0-dev/

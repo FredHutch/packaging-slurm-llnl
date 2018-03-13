@@ -1,88 +1,22 @@
-slurm-llnl (17.11.3-2fhcrc2) trusty; urgency=medium
+slurm-llnl (16.05.11-1fhcrc1) trusty; urgency=medium
 
-  * lintian fixes
+  * New version scheme
 
- -- Michael Gutteridge <mrg@fredhutch.org>  Tue, 27 Feb 2018 10:06:52 -0800
+ -- Michael Gutteridge <mrg@fredhutch.org>  Tue, 27 Feb 2018 15:43:48 -0800
 
-slurm-llnl (17.11.3-2fhcrc1) trusty; urgency=medium
+slurm-llnl (16.05.11-1) trusty; urgency=medium
 
-  * Add fhcrc-local plugins default account and qos
-  * Modified installation scripts to be less intrusive
+  * New upstream version
 
- -- Michael Gutteridge <mrg@fredhutch.org>  Tue, 27 Feb 2018 08:18:22 -0800
+ -- Michael Gutteridge <mrg@fredhutch.org>  Mon, 26 Feb 2018 10:46:52 -0800
 
-slurm-llnl (17.11.3-2) unstable; urgency=medium
+slurm-llnl (16.05.9-1+deb9u1) stretch-security; urgency=high
 
-  * New upstream release
+  * Fix CVE-2017-15566 caused by insecure SPANK environment variable
+    handling, allowing privilege escalation to root during Prolog or
+    Epilog execution (Closes: #880530)
 
- -- Michael Gutteridge <mrg@fredhutch.org>  Mon, 26 Feb 2018 12:36:12 -0800
-
-slurm-llnl (17.11.2-1) unstable; urgency=medium
-
-  [ Mehdi Dogguy ]
-  * New upstream release
-    - Refresh patches
-  * Drop old transitional packages (Closes: #878864) and old Replaces
-    and Breaks statements.
-  * Fix default pidfile for slurm daemons (See: #885759)
-  * Use --runstatedir instead of --localstatedir in debian/rules to
-    specify run state directory.
-  * Override call to dh_shlibdeps so that dpkg-shlibdeps finds
-    libslurmfull.so
-  * Override lintian error binary-or-shlib-defines-rpath: Slurm provides
-    a private shared library. Its location matches the future name of the
-    source package.
-
-  [ Gennaro Oliva ]
-  * Drop unused lintian spelling-error-in-binary overrides
-  * Update d/copyright
-  * Upgrade Standards-Version to 4.1.2, no changes needed
-
- -- Mehdi Dogguy <mehdi@debian.org>  Sun, 14 Jan 2018 10:59:47 +0100
-
-slurm-llnl (17.02.9-1) unstable; urgency=medium
-
-  * New upstream release fixes CVE-2017-15566 (Closes: #880530)
-  * Add new symbols to libslurm31 and libslurmdb31
-  * Modify header patch to remove google script in the footer
-  * Rename header patch
-
- -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Sun, 05 Nov 2017 01:02:24 +0100
-
-slurm-llnl (17.02.7-1) unstable; urgency=medium
-
-  * New upstream release
-  * Rightly moving slurmdbd symbols in slurmdbd debug package
-  * Switch from -dbg packages to automatic -dbgsym
-  * Change package priority to optional as required by the new standard
-  * Change d/copyright format uri to https
-  * Standard version upgraded to 4.1.1
-  * Increase debhelper version dependency to get rid of dh-systemd
-  * Add srun, sbatch and sacct autopkgtests
-
- -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Sat, 07 Oct 2017 01:25:22 +0200
-
-slurm-llnl (17.02.5-1) unstable; urgency=medium
-
-  [ Mehdi Dogguy and Gennaro Oliva ]
-  * New upstream release.
-  * Refresh patches.
-  * Update libslurm{db,}31.symbols
-
-  [ Gennaro Oliva ]
-  * Update d/copyright and switch to copyright-format 1.0
-
- -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Mon, 03 Jul 2017 15:30:51 +0200
-
-slurm-llnl (17.02.1.2-1) unstable; urgency=medium
-
-  * New upstream major release
-  * Update libslurm{,db} package files to soname 31
-  * Refresh patches and remove those included upstream
-  * Remove srun_cr man page not installed without blcr support
-  * Update service files to avoid killing job (Closes: #855905)
-
- -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Wed, 08 Mar 2017 08:57:37 +0100
+ -- Gennaro Oliva <oliva.g@na.icar.cnr.it>  Sun, 05 Nov 2017 11:28:51 +0100
 
 slurm-llnl (16.05.9-1) unstable; urgency=medium
 

@@ -9,9 +9,9 @@ Last-Update: 2014-09-15
 
 --- a/src/sacctmgr/sacctmgr.c
 +++ b/src/sacctmgr/sacctmgr.c
-@@ -46,8 +46,6 @@
+@@ -43,8 +43,6 @@
+ #include "src/common/xsignal.h"
  #include "src/common/proc_args.h"
- #include "src/common/strlcpy.h"
  
 -#define BUFFER_SIZE 4096
 -
@@ -20,7 +20,7 @@ Last-Update: 2014-09-15
  int exit_flag;		/* program to terminate if =1 */
 --- a/src/sacctmgr/sacctmgr.h
 +++ b/src/sacctmgr/sacctmgr.h
-@@ -67,7 +67,7 @@
+@@ -86,7 +86,7 @@
  
  #define CKPT_WAIT	10
  #define	MAX_INPUT_FIELDS 128
