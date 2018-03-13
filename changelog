@@ -1,4 +1,4 @@
-slurm-llnl (16.05.11-1fhcrc1) trusty; urgency=medium
+slurm-llnl (16.05.11-1fhcrc1) xenial; urgency=medium
 
   * New version scheme
 
