@@ -1,8 +1,9 @@
-slurm-llnl (17.11.4-1fhcrc1) xenial; urgency=medium
+slurm-llnl (17.11.5-1fhcrc1) trusty; urgency=medium
 
   * new upstream release
+  * fixes CVE-2018-7033 (slurmdbd vulnerability)
 
- -- Michael Gutteridge <mrg@fredhutch.org>  Thu, 01 Mar 2018 10:11:58 -0800
+ -- Michael Gutteridge <mrg@fredhutch.org>  Mon, 19 Mar 2018 08:42:14 -0700
 
 slurm-llnl (17.11.3-2fhcrc2) trusty; urgency=medium
 
