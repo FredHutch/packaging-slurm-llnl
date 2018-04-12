@@ -1,3 +1,10 @@
+slurm-llnl (17.11.5-1fhcrc2~ubuntu14.04) trusty; urgency=medium
+
+  * New package name
+  * c.f. backports naming
+
+ -- Michael Gutteridge <mrg@fredhutch.org>  Thu, 12 Apr 2018 09:45:58 -0700
+
 slurm-llnl (17.11.5-1fhcrc1) trusty; urgency=medium
 
   * new upstream release
