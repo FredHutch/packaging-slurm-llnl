@@ -10,7 +10,7 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all,-bindnow
 include /usr/share/dpkg/architecture.mk
 
 %:
-	dh $@ --builddirectory --parallel --with systemd
+	dh $@ --builddirectory --parallel
 
 override_dh_auto_clean:
 	dh_auto_clean
@@ -122,5 +122,7 @@ override_dh_strip:
 	dh_strip -pslurm-wlm-basic-plugins-dev
 #	strip --strip-debug --remove-section=.comment \
 #		--remove-section=.note debian/slurm-wlm-basic-plugins-dev/usr/lib/*/slurm/*.a
+
+override_dh_installinit:
 
 override_dh_auto_test:
