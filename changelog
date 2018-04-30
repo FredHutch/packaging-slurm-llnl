@@ -1,3 +1,10 @@
+slurm-llnl (17.11.5-1fhcrc3~ubuntu14.04) trusty; urgency=medium
+
+  * add X11 support
+  * add upstart conf files
+
+ -- Michael Gutteridge <mrg@fredhutch.org>  Thu, 12 Apr 2018 09:45:58 -0700
+
 slurm-llnl (17.11.5-1fhcrc2~ubuntu14.04) trusty; urgency=medium
 
   * New package name
