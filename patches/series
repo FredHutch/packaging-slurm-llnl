@@ -3,3 +3,4 @@ remove-google-javascript
 sacctmgr-increase-buffer
 pidfile-path
 rpath
+bug4522
