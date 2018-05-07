@@ -1,3 +1,9 @@
+slurm-llnl (17.11.5-1fhcrc3~ubuntu16.04) xenial; urgency=medium
+
+  * patch for bug 4522
+
+ -- Michael Gutteridge <mrg@fredhutch.org> Mon, 07 May 2018 10:42:20 -0700
+
 slurm-llnl (17.11.5-1fhcrc2~ubuntu16.04) xenial; urgency=medium
 
   * New package naming convention for multi-dist builds 
