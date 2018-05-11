@@ -1,0 +1,12 @@
+--- a/src/slurmctld/read_config.c
++++ b/src/slurmctld/read_config.c
+@@ -2375,7 +2375,8 @@
+ 
+ 	job_iterator = list_iterator_create(job_list);
+ 	while ((job_ptr = (struct job_record *) list_next(job_iterator))) {
+-		if ((job_ptr->node_bitmap) && IS_JOB_COMPLETING(job_ptr)) {
++    if ((job_ptr->node_bitmap) && IS_JOB_COMPLETING(job_ptr) &&
++        !IS_JOB_PENDING(job_ptr)) {
+ 
+ 			/* If the controller is reconfiguring
+ 			 * and the job is in completing state

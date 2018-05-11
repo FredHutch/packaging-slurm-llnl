@@ -1,3 +1,10 @@
+slurm-llnl (17.11.5-1fhcrc4) trusty; urgency=medium
+
+  * remove platform from package name
+  * add patch 4522
+
+ -- Michael Gutteridge <mrg@fredhutch.org>  Thu, 10 May 2018 17:13:01 -0700
+
 slurm-llnl (17.11.5-1fhcrc3~ubuntu14.04) trusty; urgency=medium
 
   * add X11 support
