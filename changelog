@@ -1,3 +1,9 @@
+slurm-llnl (17.11.5-1fhcrc5) trusty; urgency=medium
+
+  * restore upstart conf files
+
+ -- Michael Gutteridge <mrg@fredhutch.org>  Tue, 15 May 2018 14:56:10 -0700
+
 slurm-llnl (17.11.5-1fhcrc4) trusty; urgency=medium
 
   * remove platform from package name
