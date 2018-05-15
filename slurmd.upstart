@@ -1,4 +1,4 @@
-# slurmd - SLURM Resource Manager compute node daemon
+# slurmd - LLBL SLURM Resource Manager compute node daemon
 #
 
 description  "SLURM compute node daemon"
@@ -21,4 +21,3 @@ script
   SLURMD_OPTIONS=""
   /usr/sbin/slurmd -D ${SLURMD_OPTIONS}
 end script
-

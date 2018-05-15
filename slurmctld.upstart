@@ -1,4 +1,4 @@
-# slurmctld - SLURM Resource Manager Central Management Daemon
+# slurmctld - LLBL SLURM Resource Manager Central Management Daemon
 #
 
 description  "SLURM resource manager central management daemon"

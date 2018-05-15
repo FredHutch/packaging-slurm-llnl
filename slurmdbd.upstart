@@ -1,4 +1,4 @@
-# slurmctld - SLURM Resource Manager Central Management Daemon
+# slurmctld - LLBL SLURM Resource Manager Central Management Daemon
 #
 
 description  "SLURM database server interface"
@@ -20,6 +20,5 @@ end script
 
 script
   SLURMDBD_OPTIONS=""
-  /usr/sbin/slurmdbd -D ${SLURMDBD_OPTIONS}
+  /usr/sbin/slurmdbd ${SLURMDBD_OPTIONS}
 end script
-
