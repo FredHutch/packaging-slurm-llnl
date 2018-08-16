@@ -14,12 +14,21 @@ srcdir=slurm-llnl_$(major).$(minor).$(sub)
 
 orig=$(srcdir).orig
 
-slurm_repo=/home/mrg/Work/Build/slurm-wlm/schedmd-slurm.git
+slurm_repo=/home/mrg/Work/Build/slurm-wlm/src/SchedMD/slurm
 slurm_tag=slurm-$(major)-$(minor)-$(sub)-$(rel)
 
 deb_repo=git@github.com:FredHutch/packaging-slurm-llnl.git
 deb_tag=$(major).$(minor).$(sub)_$(rel)fhcrc$(local_rel)_ubuntu$(lsb_release)
 deb_version=$(major).$(minor).$(sub)-$(rel)fhcrc$(local_rel)~ubuntu$(lsb_release)
+
+values:
+	@echo "tld:         $(tld)"
+	@echo "srcdir:      $(srcdir)"
+	@echo "slurm_repo:  $(slurm_repo)"
+	@echo "slurm_tag:   $(slurm_tag)"
+	@echo "deb_repo:    $(deb_repo)"
+	@echo "deb_tag:     $(deb_tag)"
+	@echo "deb_version: $(deb_version)"
 
 tld: $(tld)
 $(tld):
@@ -50,7 +59,7 @@ packaging: $(tld)/$(srcdir)/debian
 $(tld)/$(srcdir)/debian:
 	cd $(tld)/$(srcdir) && git clone $(deb_repo) debian
 	cd $(tld)/$(srcdir)/debian && git checkout $(deb_tag)
-	#cd $(tld)/$(srcdir)/debian && rm -rf .git .gitignore
+	cd $(tld)/$(srcdir)/debian && rm -rf .git .gitignore
 
 plugins: $(tld)/$(srcdir)/src/plugins/job_submit/gizmo-plugins
 $(tld)/$(srcdir)/src/plugins/job_submit/gizmo-plugins:
@@ -79,4 +88,6 @@ $(tld)/$(srcdir)/$(orig).tar.xz: $(tld)
 
 #deb: $(tld)/$(srcdir) $(tld)/$(srcdir)/src/plugins/job_submit/gizmo-plugins $(tld)/$(srcdir)/debian $(tld)/$(srcdir)/$(orig).tar.xz 
 deb:
-	cd $(tld)/$(srcdir) && debuild -us -uc
+	cd $(tld)/$(srcdir) && debuild -j4 -us -uc
+
+.PHONY: values
