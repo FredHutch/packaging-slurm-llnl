@@ -1,8 +1,8 @@
-slurm-llnl (18.08.0-0rc0fhcrc1~ubuntu14.04) trusty; urgency=medium
+slurm-llnl (18.08.0-0rc0fhcrc2~ubuntu14.04) trusty; urgency=medium
 
-  * New upstream version
+  * Enable x11 via addition of libssh2 to dependencies
 
- -- Michael Gutteridge <mrg@fredhutch.org>  Wed, 22 Aug 2018 10:42:08 -0700
+ -- Michael Gutteridge <mrg@fredhutch.org>  Tue, 28 Aug 2018 14:54:27 -0700
 
 slurm-llnl (18.08.0-0pre2fhcrc1~ubuntu14.04) trusty; urgency=medium
 
