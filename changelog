@@ -1,3 +1,9 @@
+slurm-llnl (18.08.1-1fhcrc0~ubuntu16.04) xenial; urgency=medium
+
+  * New upstream version
+
+ -- Michael Gutteridge <mrg@fredhutch.org>  Mon, 15 Oct 2018 10:14:24 -0700
+
 slurm-llnl (18.08.0-0rc0fhcrc2~ubuntu16.04) xenial; urgency=medium
 
   * Add dependency on libssh2 to enable X11 forwarding
